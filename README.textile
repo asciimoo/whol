@@ -1,0 +1,14 @@
+**(W|H)all of lame** is a toolchain to fetch/display unencrypted passwords from an open wireless networks.
+
+(C) 2010 by Adam Tauber <asciimoo@gmail.com>
+Licensed under the GNU Affero General Public License v3
+
+
+dependencies:
+ * dsniff - !http://monkey.org/~dugsong/dsniff/
+ * airodump-ng source - !http://www.aircrack-ng.org/
+ * ksh - !http://kornshell.com/
+
+
+usage:
+ * ./whol.sh [wireless channel]
