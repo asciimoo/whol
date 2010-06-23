@@ -6,7 +6,7 @@ Index: airodump-ng.c
  "                    2     : Hop on last\n"
  "      -s                  : same as --cswitch\n"
  "\n"
-+"      --no-gui            : run without gui - usefull for monitoring\n"
++"      --no-gui            : run without gui - useful for monitoring\n"
 +"      -q                  : same as --no-gui\n"
 +"      --no_prefix         : write pcap with filename specified in --write - no prefixing\n"
 +"      -p                  : same as --no_prefix\n"
