@@ -3,15 +3,12 @@
 #.---------------------------------------------
 #       (w|h)all of lame
 #
-# Parameters:
-#             $1 ->  [int] channel of open wifi network
-#
 #,---------------------------------------------
 
 IFACE='wlan0'
-FIFO='whol_pipe'
+FIFO='/tmp/whol_pipe'
 STATUS=0
-mkfifo $FIFO
+
 
 destruct() {
     if [[ "$STATUS" -gt 0 ]] ; then return; fi
@@ -22,9 +19,41 @@ destruct() {
     rm $FIFO
 }
 
+usage() {
+    echo -e "(W|H)all of lame - (C) 2010 Adam Tauber
+
+    usage: whol <channel> <interface>[options] 
+    Options:
+
+        -c                  : Channel of open wifi networks [int]  
+        -i                  : Wireless interface name [str]  
+        -h                  : Displays this usage screen [void]  
+        -q                  : Quiet mode (no output) [void]  
+"
+}
+
+ARGS=`getopt -n whol -u -l channel:,help,quiet,interface c:i:hq $*`
+if test $? != 0
+     then
+         usage
+         exit 1
+fi
+set -- $ARGS
+for i
+do
+  case "$i" in
+        -c|--channel) shift; CHANNEL=$1; shift;;
+        -q|--quiet) shift; QUIET=1;;
+        -i|--interface) shift; IFACE=$1; shift;;
+        -h|--help) shift; usage; exit 1;;
+  esac
+done
+
+
+mkfifo $FIFO
 airmon-ng start $IFACE 0
 
-airodump-ng_wholmod -o pcap -w $FIFO -t OPN -c $1 mon0 -p -q&
+airodump-ng_wholmod -o pcap -w $FIFO -t OPN -c $CHANNEL mon0 -p -q&
 APID=$!
 
 trap "destruct $APID" INT
