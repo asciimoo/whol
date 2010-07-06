@@ -7,7 +7,8 @@
 
 IFACE='wlan0'
 FIFO='/tmp/whol_pipe'
-STATUS=0
+QUIET=0
+CHANNEL=0
 
 
 destruct() {
@@ -22,22 +23,25 @@ destruct() {
 usage() {
     echo -e "(W|H)all of lame - (C) 2010 Adam Tauber
 
-    usage: whol <channel> <interface>[options] 
+    Usage:
+
+        whol -c [wireless channel] <options>
+
     Options:
 
-        -c                  : Channel of open wifi networks [int]  
-        -i                  : Wireless interface name [str]  
-        -h                  : Displays this usage screen [void]  
-        -q                  : Quiet mode (no output) [void]  
+        -c, --channel        <int> : Channel of open wifi networks
+        -i, --interface      <str> : Wireless interface name
+        -w, --out-file       <str> : Write results to file
+        -h, --help                 : Displays this usage screen
+        -q, --quiet                : Quiet mode (no visual output)
 "
 }
 
-ARGS=`getopt -n whol -u -l channel:,help,quiet,interface c:i:hq $*`
-if test $? != 0
-     then
+ARGS=`getopt -n whol -u -l channel:,help,quiet,interface,write-file c:i:w:hq $*`
+[[ $? != 0 ]] && {
          usage
          exit 1
-fi
+     }
 set -- $ARGS
 for i
 do
@@ -49,15 +53,24 @@ do
   esac
 done
 
+[[ $CHANNEL == 0 ]] && {
+    echo '[!] Wrong wireless channel'
+    usage
+    exit 1
+}
 
 mkfifo $FIFO
-airmon-ng start $IFACE 0
+airmon-ng start $IFACE 0 $( if [ $QUIET -eq 1 ] ; then echo ' >/dev/null'; fi)
 
 airodump-ng_wholmod -o pcap -w $FIFO -t OPN -c $CHANNEL mon0 -p -q&
 APID=$!
 
 trap "destruct $APID" INT
 
-dsniff -m -p $FIFO
+#dsniff -m -p $FIFO
+#ettercap -T -d -m ettertest.log -r $FIFO
+
+tshark -i $FIFO -R 'http.request.method == "GET" or http.request.method == "POST" or ftp or pop' -V -l | ./tshark_parser.py
+
 
 destruct $APID

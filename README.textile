@@ -1,14 +1,18 @@
 **(W|H)all of lame** is a toolchain to fetch/display unencrypted passwords from open wireless networks.
 
+Inspired by Wall of Shame/Wall of Sheep @ defCON 
+
 (C) 2010 by Adam Tauber <asciimoo@gmail.com>
 Licensed under the GNU Affero General Public License v3
 
 
+
+usage:
+ * ./whol.sh -c [wireless channel] <options>
+
+
 dependencies:
- * dsniff - !http://monkey.org/~dugsong/dsniff/
+ * tshark - !http://www.wireshark.org/
  * airodump-ng source - !http://www.aircrack-ng.org/
  * ksh - !http://kornshell.com/
 
-
-usage:
- * ./whol.sh [wireless channel]
