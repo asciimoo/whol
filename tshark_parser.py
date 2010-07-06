@@ -65,8 +65,9 @@ if __name__ == '__main__':
     while(line):
         if fs.match(line) and len(packet):
             p = PacketParser(packet)
-            print "%s:%d -> %s:%d - %s\n%s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time, p.raw[p.contentIndex])
-            print p.getData()
+            print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
+            print '\n'.join(p.getData())
+            print '-'*88
             #print p.getContent()
             packet = []
 
