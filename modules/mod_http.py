@@ -3,7 +3,6 @@
 def parse(c, src, dst, proto):
     truncated = False
     content=[]
-
     if c[0].startswith('[truncated]'):
         method, url = c[0].replace('[truncated] ', '').split(' ')
         version = None

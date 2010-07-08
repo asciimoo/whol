@@ -34,6 +34,9 @@ class PacketParser:
             if PROTOS.has_key(proto):
                 self.iproto = (proto, PROTOS[proto])
                 break
+        if not locals()['self'].iproto:
+            raise NameError("undefined protocols [%s]" % ', '.join(self.protos))
+
         for i,l in enumerate(self.raw):
             if l.startswith('Internet Protocol, '):
                 (self.src['ip'], self.dst['ip']) =  [x.split(' ')[0] for x in l[19:].replace('Src: ', '').replace(' Dst: ', '').split(',')]
@@ -64,13 +67,17 @@ if __name__ == '__main__':
     packet = []
     while(line):
         if fs.match(line) and len(packet):
-            p = PacketParser(packet)
-            d = p.getData()
-            if len(d):
-                print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
-                print '\n'.join(["%s %s" % (x[0],x[1]) for x in d])
-                print '-'*88
-            #print p.getContent()
+            try:
+                p = PacketParser(packet)
+            except NameError, e:
+                print e
+            else:
+                d = p.getData()
+                if len(d):
+                    print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
+                    print '\n'.join(["%s %s" % (x[0],x[1]) for x in d])
+                    print '-'*88
+                #print p.getContent()
             packet = []
 
         packet.append(line.strip().replace(r'\r\n', ''))
