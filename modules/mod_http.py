@@ -1,23 +1,30 @@
 
 
-def parse(a):
+def parse(c, src, dst, proto):
     truncated = False
     content=[]
-    expertInfo=[]
-    for l in a:
-        if not len(l.strip()):
+
+    if c[0].startswith('[truncated]'):
+        method, url = c[0].replace('[truncated] ', '').split(' ')
+        version = None
+    else:
+        method, url, version = c[0].split(' ')
+
+    for ln,line in enumerate(c[1:]):
+        if not len(line.strip()):
             continue
-        if l.find('[truncated]') > -1:
+        if line.find('[truncated]') > -1:
             truncated = True
-            tmp = l.replace('[truncated]', '')
-        else:
-            tmp = l
 
-        if tmp.startswith('['):
-            expertInfo.append(tmp)
-        else:
-            content.append(tmp)
+        if line.startswith('Credentials: '):
+            content.append(('HTTP_AUTH', line[12:]))
 
-    content.append('truncated: %s' % str(truncated))
-    content.extend(expertInfo)
+        if line.startswith('Line-based text data:'):
+            content.append(('HTTP_POST_DATA', c[ln+2]))
+
+    if len(content):
+        content.append(('URL:', url))
+        content.append(('TRUNCATED:', str(truncated)))
     return content
+
+

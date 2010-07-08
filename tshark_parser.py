@@ -53,7 +53,7 @@ class PacketParser:
     def getData(self):
         if not sys.modules.has_key("modules.mod_%s" % self.iproto[0]):
             return {}
-        return globals()['mod_%s' % self.iproto[0]].parse(self.raw[self.contentIndex:])
+        return globals()['mod_%s' % self.iproto[0]].parse(self.raw[self.contentIndex:], self.src, self.dst, self.protos)
 
 
 if __name__ == '__main__':
@@ -65,9 +65,11 @@ if __name__ == '__main__':
     while(line):
         if fs.match(line) and len(packet):
             p = PacketParser(packet)
-            print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
-            print '\n'.join(p.getData())
-            print '-'*88
+            d = p.getData()
+            if len(d):
+                print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
+                print '\n'.join(["%s %s" % (x[0],x[1]) for x in d])
+                print '-'*88
             #print p.getContent()
             packet = []
 
