@@ -70,7 +70,7 @@ trap "destruct $APID" INT
 #dsniff -m -p $FIFO
 #ettercap -T -d -m ettertest.log -r $FIFO
 
-tail -f -q $FIFO | tee whol_$(date +%s).pcap | tshark -i - -R 'http.request.method == "GET" or http.request.method == "POST" or ftp or pop.request.command == "PASS" or pop.request.command == "USER"' -V -l | ./tshark_parser.py
+cat $FIFO | tee whol_$(date +%s).pcap | tshark -i - -R 'http.request.method == "GET" or http.request.method == "POST" or ftp or pop.request.command == "PASS" or pop.request.command == "USER"' -V -l | ./tshark_parser.py
 
 
 destruct $APID
