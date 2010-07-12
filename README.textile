@@ -1,4 +1,4 @@
-**(W|H)all of lame** is a toolchain to fetch/display unencrypted passwords from open wireless networks.
+**(W|H)all of lame** is a toolchain to fetch/display unencrypted data snippets (passwords,sessions,..etc) from open wireless networks.
 
 Inspired by Wall of Shame/Wall of Sheep @ defCON 
 
