@@ -8,7 +8,7 @@ Licensed under the GNU Affero General Public License v3
 
 
 usage:
- * ./whol.sh -c [wireless channel] <options>
+ * ./whol.sh -c [wireless channel] <other options>
 
 
 dependencies:
