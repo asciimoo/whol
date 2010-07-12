@@ -1,4 +1,5 @@
 
+FILTER_EXPRESSION='ftp'
 
-def parse(c, src, dst, proto):
-    return c
+def parse(c):
+    return []
