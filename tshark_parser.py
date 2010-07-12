@@ -14,49 +14,6 @@ PROTOS = {
           }
 
 
-
-
-'''
-class PacketParser:
-    def __init__(self, p):
-        self.raw = p
-        self.src = {}
-        self.dst = {}
-        # Protocols - e.g. [Protocols in frame: wlan:llc:ip:tcp:http:data-text-lines]
-        self.protos = p[9].split(' ')[-1][:-1].split(':')
-        # Packet arrival time - e.g. \tArrival Time: Jun 17, 2010 15:41:02.710650000
-        self.time = p[1][14:]
-        self.iproto = None
-        # TODO get MAC of source/destination
-        for proto in self.protos:
-            if PROTOS.has_key(proto):
-                self.iproto = (proto, PROTOS[proto])
-                break
-        if not self.iproto:
-            raise NameError("undefined protocols [%s]" % ', '.join(self.protos))
-
-        for i,l in enumerate(self.raw):
-            if l.startswith('Internet Protocol, '):
-                (self.src['ip'], self.dst['ip']) =  [x.split(' ')[1][1:-1] for x in l[19:].replace('Src: ', '').replace(' Dst: ', '').split(',')]
-                continue
-            if l.startswith('Transmission Control Protocol, '):
-                self.src['port'] = int(self.raw[i+1][13:].split(' ')[1][1:-1])
-                # TODO get service name if exists
-                self.dst['port'] = int(self.raw[i+2][19:].split(' ')[1][1:-1])
-                continue
-            if l == self.iproto[1]:
-                self.contentIndex = i+1
-                break
-
-    def getContent(self):
-        return '\n'.join(self.raw[self.contentIndex:])
-
-    def getData(self):
-        if not sys.modules.has_key("modules.mod_%s" % self.iproto[0]):
-            return {}
-        return globals()['mod_%s' % self.iproto[0]].parse(self.raw[self.contentIndex:], self.src, self.dst, self.protos)
-'''
-
 class PacketParser:
     def __init__(self, packet_str):
         self.dom = parseString(packet_str).firstChild
