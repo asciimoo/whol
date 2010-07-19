@@ -1,7 +1,7 @@
 #!/usr/bin/env ksh
 
 #.---------------------------------------------
-#       (w|h)all of lame
+#              (w|h)all of lame
 #
 #,---------------------------------------------
 
@@ -36,9 +36,8 @@ usage() {
 
         -c, --channel        <int> : Channel of open wifi networks
         -i, --interface      <str> : Wireless interface name
-        -w, --out-file       <str> : Write results to file
         -f, --filter         <str> : Pcap filter expression
-        -w, --write-file     <str> : Write the original traffic to file
+        -w, --write-file     <str> : Write the original traffic to file (pcap format)
         -h, --help                 : Displays this usage screen
         -d, --dsniff               : Use dsniff
         -q, --quiet                : Quiet mode (no visual output)
@@ -78,7 +77,6 @@ APID=$!
 
 trap "destruct $APID" INT
 
-#dsniff -m -p $FIFO
 #ettercap -T -d -m ettertest.log -r $FIFO
 
 [[ $DSNIFF ]] && mkfifo $DIR$DSNIFF_FIFO
@@ -89,7 +87,7 @@ trap "destruct $APID" INT
         tshark -i - -R \
             "$(./tshark_parser.py -f)$([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
               -V -l -T pdml | \
-              ./tshark_parser.py)
+                  ./tshark_parser.py)
 
 
 destruct $APID
