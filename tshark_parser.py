@@ -4,6 +4,10 @@ import re
 import sys
 from xml.dom.minidom import parseString
 from optparse import OptionParser
+from hashlib import sha1
+
+
+DATA_TYPES = ['TEXT', 'HEX', 'FILE']
 
 VERSION = '0.1b'
 
@@ -12,6 +16,23 @@ PROTOS = {
         'http' : 'Hypertext Transfer Protocol',            # HTTP
         'ftp'  : 'File Transfer Protocol',                 # FTP
           }
+
+
+class DataStorage:
+    '''Simple data storage'''
+    def __init__(self, src='', dst='', dtype=0, desc='', name='', value='', complete=False):
+        self.src      = src
+        self.dst      = dst
+        self.desc     = desc
+        self.name     = name
+        self.dtype    = dtype
+        self.value    = value
+        self.complete = complete
+        self.id       = self.getId()
+
+    def getId(self):
+        #return sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
+        return sha1("%s%s%s" % (self.src, self.dst, DATA_TYPES.index(self.dtype)))
 
 
 class PacketParser:
