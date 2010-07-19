@@ -1,5 +1,23 @@
+#
+#                   WHOL MODULE
+#
+#
+# FILTER_EXPRESSION -> pcap filter string to get content from tshark
+#
+# parse function:
+#     parameters:
+#       protos  -> minidom object of interested protocols
+#
+#     return:
+#       [ModuleStorage] -> 'value'       : ["values"]
+#                          'type'        : "type"
+#                          'complete'    : True/False
+#                          'notes'       : "notes"
+#                          'relevance'   : 0.0-10.0
+
 import re
 from urlparse import parse_qsl
+from modutils import hexStringDecode, ModuleStorage
 
 FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST"'
 
@@ -7,11 +25,6 @@ FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST"
 userTrigger = re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U)
 passTrigger = re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U)
 
-def splitString(s, n): 
-    return [s[i:i+n] for i in xrange(0, len(s), n)]
-
-def hexStringDecode(s):
-    return ''.join(map(unichr, map((lambda y: int(y, 16)), splitString(s, 2))))
 
 def parse(protos):
     ret = []
@@ -28,7 +41,7 @@ def parse(protos):
             method = f.attributes['show'].value
             continue
         if f.attributes['name'].value == 'http.request.uri':
-            method = hexStringDecode(f.attributes['value'].value)
+            uri = hexStringDecode(f.attributes['value'].value)
             continue
     for field in http_proto.childNodes[1:]:
         if field.attributes['name'].value == 'http.cookie':
