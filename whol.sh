@@ -6,7 +6,7 @@
 #,---------------------------------------------
 
 IFACE='wlan0'
-DIR='/tmp/'
+DIR='/tmp'
 FIFO='whol_pipe'
 DSNIFF_FIFO='whol_dsniff_pipe'
 QUIET=0
@@ -19,8 +19,8 @@ destruct() {
     STATUS=$((STATUS+1))
     if [[ "$1" != "" ]] ; then kill $1; fi
     airmon-ng stop mon0
-    rm $DIR$FIFO
-    [[ $DSNIFF ]] && rm $DIR$DSNIFF_FIFO
+    rm $DIR/$FIFO
+    [[ $DSNIFF ]] && rm $DIR/$DSNIFF_FIFO
     # TODO more sophisticated destruction..
     [[ $DSNIFF ]] && killall dsniff
 }
@@ -44,7 +44,7 @@ usage() {
 "
 }
 
-ARGS=`getopt -n whol -u -l channel:,help,quiet,interface,write-file,filter,dsniff c:f:i:w:hqd $*`
+ARGS=`getopt -n whol -u -l channel:,help,quiet,interface:,write-file:,filter:,dsniff c:f:i:w:hqd $*`
 [[ $? != 0 ]] && {
          usage
          exit 1
@@ -58,7 +58,7 @@ do
         -i|--interface        ) shift; IFACE=$1; shift;;
         -f|--filter           ) shift; FILTER=$1; shift;;
         -w|--write-file       ) shift; W_FILE=$1; shift;;
-        -d|--dsniff           ) shift; DSNIFF=1; shift;;
+        -d|--dsniff           ) shift; DSNIFF=1;;
         -h|--help             ) shift; usage; exit 1;;
   esac
 done
@@ -69,23 +69,23 @@ done
     exit 1
 }
 
-mkfifo $DIR$FIFO
+mkfifo $DIR/$FIFO
 airmon-ng start $IFACE 0 $( if [ $QUIET -eq 1 ] ; then echo ' >/dev/null'; fi)
 
-airodump-ng_wholmod -o pcap -w $DIR$FIFO -t OPN -c $CHANNEL mon0 -p -q&
+airodump-ng_wholmod -o pcap -w $DIR/$FIFO -t OPN -c $CHANNEL mon0 -p -q&
 APID=$!
 
 trap "destruct $APID" INT
 
 #ettercap -T -d -m ettertest.log -r $FIFO
 
-[[ $DSNIFF ]] && mkfifo $DIR$DSNIFF_FIFO
-[[ $DSNIFF ]] && dsniff -m -p $DIR$DSNIFF_FIFO &
+[[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO
+[[ $DSNIFF ]] && dsniff -m -p $DIR/$DSNIFF_FIFO &
 
-(cat $DIR$FIFO |\
-    tee $([[ $DSNIFF ]] && echo -n $DIR$DSNIFF_FIFO) $([[ $W_FILE ]] && echo -n $W_FILE) | \
+(cat $DIR/$FIFO |\
+    tee $([[ $DSNIFF ]] && echo -n $DIR/$DSNIFF_FIFO) $W_FILE | \
         tshark -i - -R \
-            "$(./tshark_parser.py -f)$([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
+            "$(./tshark_parser.py -f) $([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
               -V -l -T pdml | \
                   ./tshark_parser.py)
 
