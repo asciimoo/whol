@@ -7,7 +7,7 @@ def hexStringDecode(s):
     return ''.join(map(unichr, map((lambda y: int(y, 16)), splitString(s, 2))))
 
 class ModuleStorage:
-    "simple storage class"
+    "Simple storage class"
     def __init__(self, value=[''], dtype='', complete=False, notes='', relevance=10):
         self.value      = value
         self.complete   = complete
@@ -16,4 +16,4 @@ class ModuleStorage:
         self.relevance  = relevance
 
     def __unicode__(self):
-        return u'Value: "%s", Complete: %s, Notes: %s, Relevance: %f, Type: %s' % (self.value, str(self.complete), self.notes, self.relevance, self.dtype)
+        return u'Value: "%s"\n\tComplete: %s, Notes: %s, Relevance: %f, Type: %s' % (self.value, str(self.complete), self.notes, self.relevance, self.dtype)
