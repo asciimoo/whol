@@ -105,7 +105,7 @@ if __name__ == '__main__':
     pdml_version = sys.stdin.readline()
     line = sys.stdin.readline()
     # Frame regexp - e.g. fit to 'Frame 91 (1263 bytes on wire, 1263 bytes captured)\n'
-    fs = re.compile(r'^Frame [0-9]+ \([0-9]+ bytes on wire, [0-9]+ bytes captured\)\W$')
+    # fs = re.compile(r'^Frame [0-9]+ \([0-9]+ bytes on wire, [0-9]+ bytes captured\)\W$')
     #ps = re.compile(r'^(?:'+')|(:?'.join(PROTOS)+r')\W$')
     packet = []
     while(line):
@@ -119,25 +119,11 @@ if __name__ == '__main__':
                 d = p.decode()
                 if len(d):
                     print "%s:%d -> %s:%d - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.time)
-                    print d
+                    # TODO !! 
+                    print (40*"-").join(['\n'.join([y.__unicode__() for y in x]) for x in d])
                     print '-'*88
-                #print p.getContent()
             packet = []
 
         line = sys.stdin.readline()
 
 
-# NOTES
-#
-# var as function
-#
-# Py> def test():
-# .... print "Hi there!"
-# ....
-# Py> var = "test"
-# Py> locals()[var]()
-#
-#
-# __import__(name[, globals[, locals[, fromlist[, level]]]])
-# 
-#
