@@ -14,3 +14,6 @@ class ModuleStorage:
         self.dtype      = dtype
         self.notes      = notes
         self.relevance  = relevance
+
+    def __unicode__(self):
+        return u'Value: "%s", Complete: %s, Notes: %s, Relevance: %f, Type: %s' % (self.value, str(self.complete), self.notes, self.relevance, self.dtype)
