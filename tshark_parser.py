@@ -21,6 +21,8 @@ cdc = []
 # key: ModuleStorage.id, value: idc index to key
 hashTable = {}
 
+histData = []
+
 class DataStorage:
     '''Simple data storage'''
     def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=''):
@@ -30,11 +32,15 @@ class DataStorage:
         self.proto    = proto
         self.dtype    = dtype
         self.value    = value
-        self.getId()
+        self.updateHash()
+        self.updateId()
 
-    def getId(self):
-        #return sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
-        self.id = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
+    def updateHash(self):
+        self.hash = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
+
+    def updateId(self):
+        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, unicode(self.value))).hexdigest()
+        # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
         return "Src: %s, Dst: %s\n %s\n id: %s" % (self.src, self.dst, unicode(self.value), self.id)
@@ -87,24 +93,33 @@ class PacketParser:
             r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
             for d in r:
                 if d.complete:
-                    cdc.append(DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d))
+                    ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
+                    if ds.id in histData:
+                        print "shit"
+                        continue
+                    cdc.append(ds)
+                    histData.append(ds.id)
                     c += 1
                 else:
                     ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
-                    if hashTable.has_key(ds.id):
-                        index = hashTable[ds.id]
+                    if hashTable.has_key(ds.hash):
+                        index = hashTable[ds.hash]
                         if ds.value.dtype != idc[index].dtype:
                             ds.value.value.extend(idc[index].value)
                             ds.value.dtype += ' %s' % idc[index].dtype
                             ds.value.complete = True
+                            ds.updateId()
                             idc.pop(index)
-                            hashTable.pop(ds.id)
+                            hashTable.pop(ds.hash)
+                            if ds.id in histData:
+                                continue
+                            histData.append(ds.id)
                             cdc.append(ds)
                             c += 1
                         else:
                             print 'duplicated item dropped'
                     else:
-                        hashTable[ds.id] = len(idc)
+                        hashTable[ds.hash] = len(idc)
                         idc.append(d)
         return c
 
@@ -161,4 +176,5 @@ if __name__ == '__main__':
 
     print '\nIncomplete packets:'
     print '\n'.join(map(unicode, idc))
+    print '\n'.join(map(unicode, cdc))
 
