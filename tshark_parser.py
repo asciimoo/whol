@@ -95,7 +95,6 @@ class PacketParser:
                 if d.complete:
                     ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
                     if ds.id in histData:
-                        print "shit"
                         continue
                     cdc.append(ds)
                     histData.append(ds.id)
