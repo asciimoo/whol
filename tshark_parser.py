@@ -39,7 +39,7 @@ class DataStorage:
         self.hash = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
 
     def updateId(self):
-        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, unicode(self.value))).hexdigest()
+        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, str(self.value))).hexdigest()
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):

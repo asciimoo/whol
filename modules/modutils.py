@@ -17,3 +17,6 @@ class ModuleStorage:
 
     def __unicode__(self):
         return u'Value: "%s"\n\tComplete: %s, Notes: %s, Relevance: %f, Type: %s' % (self.value, str(self.complete), self.notes, self.relevance, self.dtype)
+
+    def __str__(self):
+        return u'Value: "%s"\n\tComplete: %s, Notes: %s, Relevance: %f' % (self.value, str(self.complete), self.notes, self.relevance)
