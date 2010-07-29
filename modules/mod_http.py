@@ -1,5 +1,5 @@
 #
-#                   WHOL MODULE
+#                   WHOL MODULE (HTTP)
 #
 #
 # FILTER_EXPRESSION -> pcap filter string to get content from tshark
@@ -20,6 +20,7 @@
 import re
 from urlparse import parse_qsl
 from modutils import hexStringDecode, ModuleStorage
+import Cookie
 
 FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST"'
 
@@ -28,6 +29,11 @@ PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 # TODO write better triggers
 userTrigger = re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U)
 passTrigger = re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U)
+triggers = (
+            (re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U), 'HTTP_POST_USER'),
+            (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'HTTP_POST_PASS'),
+            #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
+           )
 
 
 def parse(protos):
@@ -49,7 +55,16 @@ def parse(protos):
             continue
     for field in http_proto.childNodes[1:]:
         if field.attributes['name'].value == 'http.cookie':
-            cookie = hexStringDecode(field.attributes['value'].value)[8:].replace('\r\n', '')
+            cookie = Cookie.SimpleCookie()
+            cookiestr = hexStringDecode(field.attributes['value'].value)[8:].replace('\r\n', '')
+            try:
+                cookie.load(cookiestr)
+            except:
+                continue
+
+            for k, v in cookie.iteritems():
+                if v.key.find('SESSID') > 0:
+                    ret.append(ModuleStorage(value=[v.value], complete=True, dtype='HTTP_COOKIE_SESS', notes='"%s %s" @ %s' % (method, uri, host), relevance=5))
             continue
         if field.attributes['name'].value == 'http.host':
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
@@ -62,13 +77,13 @@ def parse(protos):
         try:
             post_data = hexStringDecode(data_text_lines.firstChild.attributes['value'].value)
         except:
+            print host, method, uri,
             print data_text_lines.firstChild.attributes
             return ret
         for q in parse_qsl(post_data):
-            if userTrigger.match(q[0]):
-                ret.append(ModuleStorage(value=[q[1]], complete=False, dtype='HTTP_POST_USER', notes='%s %s' % (method, uri), relevance=10))
-            if passTrigger.match(q[0]):
-                ret.append(ModuleStorage(value=[q[1]], complete=False, dtype='HTTP_POST_PASS', notes='%s %s' % (method, uri), relevance=10))
+            for trigger in triggers:
+                if trigger[0].match(q[0]):
+                    ret.append(ModuleStorage(value=[q[1]], complete=False, dtype=trigger[1], notes='%s %s' % (method, uri), relevance=10))
 
     return ret
 
