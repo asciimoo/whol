@@ -1,7 +1,7 @@
 #!/usr/bin/env ksh
 
 #.---------------------------------------------
-#              (w|h)all of lame
+#              (W|H)all Of Lame
 #
 #,---------------------------------------------
 
@@ -16,6 +16,7 @@ CHANNEL=0
 destruct() {
     if [[ "$STATUS" -gt 0 ]] ; then return; fi
     echo "exitting.."
+    R=0
     STATUS=$((STATUS+1))
     if [[ "$1" != "" ]] ; then kill $1; fi
     airmon-ng stop mon0
@@ -81,13 +82,13 @@ trap "destruct $APID" INT
 
 [[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO
 [[ $DSNIFF ]] && dsniff -m -p $DIR/$DSNIFF_FIFO &
-
+R=1
 (cat $DIR/$FIFO |\
     tee $([[ $DSNIFF ]] && echo -n $DIR/$DSNIFF_FIFO) $W_FILE | \
-        tshark -i - -R \
+        while [ $R == 1 ] ; do tshark -i - -c 100000 -R \
             "$(./tshark_parser.py -f) $([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
-              -V -l -T pdml | \
+              -T pdml ; echo $R; done 2>/dev/null | \
                   ./tshark_parser.py)
 
-
+R=0
 destruct $APID
