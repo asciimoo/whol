@@ -25,13 +25,15 @@ histData = []
 
 class DataStorage:
     '''Simple data storage'''
-    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=''):
+    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value='', verified=False):
         self.src      = src
         self.dst      = dst
         self.desc     = desc
         self.proto    = proto
         self.dtype    = dtype
         self.value    = value
+        self.verified = verified
+        # TODO date
         self.updateHash()
         self.updateId()
 
@@ -44,6 +46,12 @@ class DataStorage:
 
     def __unicode__(self):
         return "Src: %s, Dst: %s\n %s\n id: %s" % (self.src, self.dst, unicode(self.value), self.id)
+
+    def verify(self):
+        if self.verified:
+            return
+        self.verified = True
+        self.value.relevance += 10
 
 
 class PacketParser:
@@ -103,10 +111,10 @@ class PacketParser:
                     ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
                     if hashTable.has_key(ds.hash):
                         index = hashTable[ds.hash]
-                        if ds.value.dtype != idc[index].dtype:
-                            ds.value.value.extend(idc[index].value)
-                            ds.value.dtype += ' %s' % idc[index].dtype
+                        if ds.value.value.keys() != idc[index].value.keys():
+                            ds.value.value.update(idc[index].value)
                             ds.value.complete = True
+                            ds.value.order()
                             ds.updateId()
                             idc.pop(index)
                             hashTable.pop(ds.hash)
@@ -156,20 +164,21 @@ if __name__ == '__main__':
     line = sys.stdin.readline()
     packet = []
     while(line):
-        packet.append(line.strip())
-        if line.strip() == '</packet>':
-            try:
-                p = PacketParser(''.join(packet))
-            except NameError, e:
-                print e
-            else:
-                packets = p.decode()
-                if packets > 0:
-                    # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
-                    # TODO !! 
-                    print ('-'*40+'\n').join(map(unicode, cdc[-packets:]))
-                    print '-'*88
-            packet = []
+        if line.strip() != '</pdml>' and line != pdml_version and line != xml_version:
+            packet.append(line.strip())
+            if line.strip() == '</packet>':
+                try:
+                    p = PacketParser(''.join(packet))
+                except NameError, e:
+                    print e
+                else:
+                    packets = p.decode()
+                    if packets > 0:
+                        # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
+                        # TODO !! 
+                        print ('-'*40+'\n').join(map(unicode, cdc[-packets:]))
+                        print '-'*88
+                packet = []
 
         line = sys.stdin.readline()
 
