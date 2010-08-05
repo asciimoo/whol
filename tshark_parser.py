@@ -25,7 +25,7 @@ histData = []
 
 class DataStorage:
     '''Simple data storage'''
-    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value='', verified=False):
+    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value='', verified=False, notes=''):
         self.src      = src
         self.dst      = dst
         self.desc     = desc
@@ -33,6 +33,7 @@ class DataStorage:
         self.dtype    = dtype
         self.value    = value
         self.verified = verified
+        self.notes    = notes
         # TODO date
         self.updateHash()
         self.updateId()
@@ -45,7 +46,7 @@ class DataStorage:
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
-        return "Src: %s, Dst: %s\n %s\n id: %s" % (self.src, self.dst, unicode(self.value), self.id)
+        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s" % (self.src, self.dst, unicode(self.value), self.id, self.notes)
 
     def verify(self):
         if self.verified:
@@ -100,15 +101,22 @@ class PacketParser:
             r = []
             r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
             for d in r:
+                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time))
+                if d.verification:
+                    for p in reversed(cdc):
+                        if p.hash == ds.hash:
+                            print '[!] Verification found for %s' % unicode(p)
+                            # TODO check verification
+
+                            break
+                    continue
                 if d.complete:
-                    ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
                     if ds.id in histData:
                         continue
                     cdc.append(ds)
                     histData.append(ds.id)
                     c += 1
                 else:
-                    ds = DataStorage(src=self.src_str, dst=self.dst_str, proto=p, value=d)
                     if hashTable.has_key(ds.hash):
                         index = hashTable[ds.hash]
                         if ds.value.value.keys() != idc[index].value.keys():
