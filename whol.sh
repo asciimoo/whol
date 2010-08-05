@@ -11,6 +11,7 @@ FIFO='whol_pipe'
 DSNIFF_FIFO='whol_dsniff_pipe'
 QUIET=0
 CHANNEL=0
+DPREFIX=/tmp/whol_tdump
 
 
 destruct() {
@@ -80,15 +81,30 @@ trap "destruct $APID" INT
 
 #ettercap -T -d -m ettertest.log -r $FIFO
 
-[[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO
-[[ $DSNIFF ]] && dsniff -m -p $DIR/$DSNIFF_FIFO &
-R=1
+[[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO && dsniff -m -p $DIR/$DSNIFF_FIFO &
+
 (cat $DIR/$FIFO |\
     tee $([[ $DSNIFF ]] && echo -n $DIR/$DSNIFF_FIFO) $W_FILE | \
-        while [ $R == 1 ] ; do tshark -i - -c 100000 -R \
-            "$(./tshark_parser.py -f) $([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
-              -T pdml ; echo $R; done 2>/dev/null | \
-                  ./tshark_parser.py)
+        tcpdump -r - -C 1 -w $DPREFIX)&
+#       python ./splitpcap.20051126.py | \
+
+TC=1
+R=1
+rm $DPREFIX*
+FILTERPREF=$(./tshark_parser.py -f)
+while [ $R == 1 ] ; do 
+    [[ ! -f "$DPREFIX$TC" ]] && { sleep 1; continue; }
+    if [[ $TC -eq 1 ]]; then
+        F=$DPREFIX
+    else
+        F=$DPREFIX$(( TC-1 ))
+    fi
+    tshark -r $F -R \
+        "$FILTERPREF $([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
+            -T pdml 2>/dev/null
+    rm $F
+    TC=$(( $TC+1 ))
+done | ./tshark_parser.py
 
 R=0
 destruct $APID
