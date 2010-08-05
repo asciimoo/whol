@@ -12,6 +12,6 @@ def parse(protos):
             t = hexStringDecode(p.attributes['value'].value)
             continue
         if p.attributes['name'].value == 'pop.request.parameter':
-            return [ModuleStorage(value=[hexStringDecode(p.attributes['value'].value)], complete=False, dtype='POP_%s' % t, notes=' - ', relevance=10)]
+            return [ModuleStorage(value={('POP_%s' % t): hexStringDecode(p.attributes['value'].value)}, complete=False, notes=' - ', relevance=10)]
 
     return []

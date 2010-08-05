@@ -11,18 +11,23 @@
 #       protos  -> minidom object of interested protocols
 #
 #     return:
-#       [ModuleStorage] -> 'value'       : ["values"]
-#                          'dtype'       : "type"
-#                          'complete'    : True/False
-#                          'notes'       : "notes"
-#                          'relevance'   : 0.0-10.0
+#       [ModuleStorage] -> 'value'              : {'type': 'value',}
+#                          'complete'           : True/False
+#                          'notes'              : "notes"
+#                          'relevance'          : 0.0-10.0
+#
+#               or
+#
+#       [ModuleStorage] -> 'verification'       : True
+#       [ModuleStorage] -> 'value'              : {'type': '',}
+#
 
 import re
 from urlparse import parse_qsl
 from modutils import hexStringDecode, ModuleStorage
 import Cookie
 
-FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST"'
+FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST" or http.response.code == 200'
 
 PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 
@@ -63,27 +68,26 @@ def parse(protos):
                 continue
 
             for k, v in cookie.iteritems():
-                if v.key.find('SESSID') > 0:
-                    ret.append(ModuleStorage(value=[v.value], complete=True, dtype='HTTP_COOKIE_SESS', notes='"%s %s" @ %s' % (method, uri, host), relevance=5))
+                if v.key.find('SESSID') >= 0:
+                    ret.append(ModuleStorage(value={'HTTP_COOKIE_SESS': v.value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
+                    break
             continue
         if field.attributes['name'].value == 'http.host':
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
             continue
         if field.attributes['name'].value == 'http.authorization':
-            ret.append(ModuleStorage(value=[field.firstChild.attributes['show'].value], complete=True, dtype='HTTP_AUTH', notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
+            ret.append(ModuleStorage(value={'HTTP_AUTH': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
             continue
 
     if data_text_lines:
         try:
             post_data = hexStringDecode(data_text_lines.firstChild.attributes['value'].value)
         except:
-            print host, method, uri,
-            print data_text_lines.firstChild.attributes
             return ret
         for q in parse_qsl(post_data):
             for trigger in triggers:
                 if trigger[0].match(q[0]):
-                    ret.append(ModuleStorage(value=[q[1]], complete=False, dtype=trigger[1], notes='%s %s' % (method, uri), relevance=10))
+                    ret.append(ModuleStorage(value={trigger[1]: q[1]}, complete=False, notes='%s %s' % (method, uri), relevance=10))
 
     return ret
 
