@@ -124,8 +124,6 @@ Index: airodump-ng.c
  							G.output_format_csv = 1;
  						} else if (strncasecmp(output_format_string, "pcap", 4) == 0
  							|| strncasecmp(output_format_string, "cap", 3) == 0) {
-+                            // is strncasecmp(output_format_string, "pcap", 4) == 0 really
-+                            // necessary?
                              if (ivs_only) {
                                  printf( usage, getVersion("Airodump-ng", _MAJ, _MIN, _SUB_MIN, _REVISION, _BETA, _RC)  );
                                  fprintf(stderr, "Invalid output format: IVS and PCAP format cannot be used together.\n");
