@@ -187,7 +187,7 @@ def main_loop(relevance_limit):
                     if packets > 0:
                         # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
                         # TODO !! 
-                        print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance >= relevance_limit, cdc[-packets:])))
+                        print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
                 packet = []
 
         line = sys.stdin.readline()
