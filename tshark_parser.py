@@ -119,7 +119,7 @@ class PacketParser:
             try:
                 r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
             except Exception, e:
-                print '[!] %s module cannot decode packet\n\tError: %s\n\tPacket:\n %s' % (p, e.value, self.packet_str)
+                print '[!] %s module cannot decode packet\n\tError: %s\n\tPacket:\n %s' % (p, e.value)
                 print 80*'-'
                 continue
 
