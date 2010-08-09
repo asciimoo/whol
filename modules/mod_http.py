@@ -42,6 +42,9 @@ triggers = (
 
 
 def parse(protos):
+    if protos[0].firstChild.attributes['name'].value == 'data':
+        # print "[!] DATA?!"
+        return []
     ret = []
     host = ''
     method = ''
@@ -49,6 +52,12 @@ def parse(protos):
     cookie = ''
     data_text_lines = ''
     http_proto = protos[0]
+    try:
+        if http_proto.firstChild.childNodes[2].attributes['name'].value == 'http.response.code':
+            # parse the response for validations
+            return []
+    except:
+        print [x.attributes.items() for x in http_proto.childNodes]
     if len(protos) > 1:
         data_text_lines = protos[1]
     for f in http_proto.firstChild.childNodes:
@@ -76,6 +85,8 @@ def parse(protos):
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
             continue
         if field.attributes['name'].value == 'http.authorization':
+            print field.attributes
+            print [x.attributes for x in field.childNodes]
             ret.append(ModuleStorage(value={'HTTP_AUTH': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
             continue
 
