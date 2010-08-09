@@ -39,6 +39,7 @@ usage() {
         -c, --channel        <int> : Channel of open wifi networks
         -i, --interface      <str> : Wireless interface name
         -f, --filter         <str> : Pcap filter expression
+        -r, --relevance    <float> : Filter output (default is 10)
         -w, --write-file     <str> : Write the original traffic to file (pcap format)
         -h, --help                 : Displays this usage screen
         -d, --dsniff               : Use dsniff
@@ -46,7 +47,7 @@ usage() {
 "
 }
 
-ARGS=`getopt -n whol -u -l channel:,help,quiet,interface:,write-file:,filter:,dsniff c:f:i:w:hqd $*`
+ARGS=`getopt -n whol -u -l channel:,help,quiet,interface:,write-file:,filter:,relevance:,dsniff c:r:f:i:w:hqd $*`
 [[ $? != 0 ]] && {
          usage
          exit 1
@@ -61,6 +62,7 @@ do
         -f|--filter           ) shift; FILTER=$1; shift;;
         -w|--write-file       ) shift; W_FILE=$1; shift;;
         -d|--dsniff           ) shift; DSNIFF=1;;
+        -r|--relevance        ) shift; RELEVANCE='-r '$1; shift;;
         -h|--help             ) shift; usage; exit 1;;
   esac
 done
@@ -99,12 +101,15 @@ while [ $R == 1 ] ; do
     else
         F=$DPREFIX$(( TC-1 ))
     fi
+    [[ -f $F ]] && {
     tshark -r $F -R \
         "$FILTERPREF $([[ $FILTER ]] && echo -n ' and ('$FILTER')')" \
-            -T pdml 2>/dev/null
-    rm $F
+            -T pdml 2>/dev/null && rm $F
+    }
     TC=$(( $TC+1 ))
-done | ./tshark_parser.py
+done | ./tshark_parser.py $RELEVANCE
 
 R=0
 destruct $APID
+
+
