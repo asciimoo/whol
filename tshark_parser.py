@@ -6,6 +6,7 @@ from optparse import OptionParser
 from hashlib import sha1
 from os import listdir
 from os.path import isfile
+from signal import signal, SIGINT
 
 
 DATA_TYPES = ['TEXT', 'HEX', 'FILE']
@@ -25,13 +26,18 @@ histData = []
 
 class DataStorage:
     '''Simple data storage'''
-    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value='', verified=False, notes=''):
-        self.src      = src
-        self.dst      = dst
+    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=None, verified=False, notes=''):
+        self.value    = value
+        # need to switch src-dst in verifications
+        if value.verification:
+            self.src      = dst
+            self.dst      = src
+        else:
+            self.src      = src
+            self.dst      = dst
         self.desc     = desc
         self.proto    = proto
         self.dtype    = dtype
-        self.value    = value
         self.verified = verified
         self.notes    = notes
         # TODO date
@@ -46,13 +52,25 @@ class DataStorage:
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
-        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s" % (self.src, self.dst, unicode(self.value), self.id, self.notes)
+        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s\n verified: %s\n" % (self.src, self.dst, unicode(self.value), self.id, self.notes, str(self.verified))
 
     def verify(self):
         if self.verified:
             return
         self.verified = True
         self.value.relevance += 10
+
+    def merge(self, p):
+        if self.value.complete and self.verified:
+            return False
+        if p.verification and not self.verified:
+            self.verified=True
+            self.value.relevance += 10
+            return True
+        self.value.update(p.value)
+        self.value.complete = True
+        self.updateId()
+        return True
 
 
 class PacketParser:
@@ -64,6 +82,7 @@ class PacketParser:
         self.dst = {}
         self.dst_str = ''
         self.time = ''
+        self.packet_str = packet_str
         for x in self.dom.childNodes:
             self.protos.append(x.attributes['name'].value)
             if x.attributes['name'].value == 'ip':
@@ -98,15 +117,27 @@ class PacketParser:
             p = proto.attributes['name'].value
             if not sys.modules.has_key("modules.mod_%s" % p):
                 continue
-            r = []
-            r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
+            try:
+                r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
+            except Exception, e:
+                print '[!] %s module cannot decode packet\n\tError: %s\n\tPacket:\n %s' % (p, e.value, self.packet_str)
+                print 80*'-'
+                continue
+
             for d in r:
                 ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time))
                 if d.verification:
+                    if d.complete:
+                        cdc.append(ds)
+                        c +=1
+                        continue
                     for p in reversed(cdc):
-                        if p.hash == ds.hash:
-                            print '[!] Verification found for %s' % unicode(p)
+                        if p.hash == ds.hash and not p.verified:
                             # TODO check verification
+                            cdc.remove(p)
+                            p.merge(d)
+                            cdc.append(p)
+                            c +=1
 
                             break
                     continue
@@ -120,10 +151,8 @@ class PacketParser:
                     if hashTable.has_key(ds.hash):
                         index = hashTable[ds.hash]
                         if ds.value.value.keys() != idc[index].value.keys():
-                            ds.value.value.update(idc[index].value)
-                            ds.value.complete = True
-                            ds.value.order()
-                            ds.updateId()
+                            if not ds.merge(idc[index]):
+                                continue
                             idc.pop(index)
                             hashTable.pop(ds.hash)
                             if ds.id in histData:
@@ -139,10 +168,46 @@ class PacketParser:
         return c
 
 
+def main_loop(relevance_limit):
+    global cdc
+    xml_version = sys.stdin.readline()
+    pdml_version = sys.stdin.readline()
+    line = sys.stdin.readline()
+    packet = []
+    while(line):
+        if line.strip() != '</pdml>' and line != pdml_version and line != xml_version:
+            packet.append(line.strip())
+            if line.strip() == '</packet>':
+                try:
+                    p = PacketParser(''.join(packet))
+                except NameError, e:
+                    print e
+                else:
+                    packets = p.decode()
+                    if packets > 0:
+                        # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
+                        # TODO !! 
+                        print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance >= relevance_limit, cdc[-packets:])))
+                packet = []
+
+        line = sys.stdin.readline()
+
+
+
+def destruct(signal, frame):
+    global cdc, idc
+    print '\nIncomplete packets:'
+    print '\n'.join(map(unicode, idc))
+    print '\nComplete Packets:'
+    print '\n'.join(map(unicode, cdc))
+    sys.exit(0)
+
 if __name__ == '__main__':
+    signal(SIGINT, destruct)
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage, version=("%%prog %s" % VERSION))
     parser.add_option("-f", "--filter", action='store_true', dest='filter')
+    parser.add_option("-r", "--relevance", action='store', type='float',  dest='relevance', default=10)
     (options, args) = parser.parse_args()
     FILTER_EXP = []
     # (short|long) proto description
@@ -161,36 +226,11 @@ if __name__ == '__main__':
                 if not options.filter:
                     print "[!] %s module loaded" % modname[4:]
     if not len(PROTOS):
-        print "[!] 0 module found. exitting.."
+        print "[!] No modules found. exitting.."
         sys.exit(1)
     if options.filter:
         filter_str = ' or '.join(FILTER_EXP)
         print filter_str,
         sys.exit(0)
-    xml_version = sys.stdin.readline()
-    pdml_version = sys.stdin.readline()
-    line = sys.stdin.readline()
-    packet = []
-    while(line):
-        if line.strip() != '</pdml>' and line != pdml_version and line != xml_version:
-            packet.append(line.strip())
-            if line.strip() == '</packet>':
-                try:
-                    p = PacketParser(''.join(packet))
-                except NameError, e:
-                    print e
-                else:
-                    packets = p.decode()
-                    if packets > 0:
-                        # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
-                        # TODO !! 
-                        print ('-'*40+'\n').join(map(unicode, cdc[-packets:]))
-                        print '-'*88
-                packet = []
-
-        line = sys.stdin.readline()
-
-    print '\nIncomplete packets:'
-    print '\n'.join(map(unicode, idc))
-    print '\n'.join(map(unicode, cdc))
-
+    print "[!] Relevance filter: %.2f" % options.relevance
+    main_loop(options.relevance)
