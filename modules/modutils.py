@@ -20,6 +20,7 @@ class ModuleStorage:
     def __str__(self):
         return u'Value: "%s"\n\tRelevance: %f' % (self.value, self.relevance)
 
-    def order(self):
+    def update(self, value):
+        self.value.update(value)
         self.value = dict(sorted(self.value.iteritems()))
 
