@@ -82,7 +82,6 @@ class PacketParser:
         self.dst = {}
         self.dst_str = ''
         self.time = ''
-        self.packet_str = packet_str
         for x in self.dom.childNodes:
             self.protos.append(x.attributes['name'].value)
             if x.attributes['name'].value == 'ip':
