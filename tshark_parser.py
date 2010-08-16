@@ -119,17 +119,17 @@ class PacketParser:
             try:
                 r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
             except Exception, e:
-                print '[!] %s module cannot decode packet\n\tError: %s\n\tPacket:\n %s' % (p, e.value)
+                print '[!] %s module cannot decode packet\n\tError: %s\n' % (p, e)
                 print 80*'-'
                 continue
 
             for d in r:
                 ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time))
                 if d.verification:
-                    if d.complete:
-                        cdc.append(ds)
-                        c +=1
-                        continue
+                    #if d.complete:
+                    #    cdc.append(ds)
+                    #    c +=1
+                    #    continue
                     for p in reversed(cdc):
                         if p.hash == ds.hash and not p.verified:
                             # TODO check verification
@@ -152,7 +152,8 @@ class PacketParser:
                         if ds.value.value.keys() != idc[index].value.keys():
                             if not ds.merge(idc[index]):
                                 continue
-                            idc.pop(index)
+                            # idc.pop(index)
+                            idc[index] = None
                             hashTable.pop(ds.hash)
                             if ds.id in histData:
                                 continue
@@ -196,7 +197,7 @@ def main_loop(relevance_limit):
 def destruct(signal, frame):
     global cdc, idc
     print '\nIncomplete packets:'
-    print '\n'.join(map(unicode, idc))
+    print '\n'.join(map(unicode, filter(lambda x: x != None, idc)))
     print '\nComplete Packets:'
     print '\n'.join(map(unicode, cdc))
     sys.exit(0)
