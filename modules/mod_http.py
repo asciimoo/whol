@@ -27,7 +27,7 @@ from urlparse import parse_qsl
 from modutils import hexStringDecode, ModuleStorage
 import Cookie
 
-FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST" or http.response.code == 200'
+FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST" or (http.response.code == 200 and http.content_type contains "html")'
 
 PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 
@@ -40,6 +40,9 @@ triggers = (
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
 
+verif_trigs = (
+            (re.compile('(?:successful )log(?:ged) in', re.I | re.U | re.M), ['HTTP_POST_USER', 'HTTP_POST_PASS']),
+            )
 
 def parse(protos):
     if protos[0].firstChild.attributes['name'].value == 'data':
@@ -54,10 +57,19 @@ def parse(protos):
     http_proto = protos[0]
     try:
         if http_proto.firstChild.childNodes[2].attributes['name'].value == 'http.response.code':
+            if protos[1].attributes['name'].value == 'data-text-lines':
+                # TODO write to file?!
+                full_response_content = ''.join([hexStringDecode(x.attributes['value'].value) for x in protos[1].childNodes])
+                if verif_trigs[0][0].match(full_response_content):
+                    ret.append(ModuleStorage(value={'HTTP_POST_VERIF': ''}, complete=False, notes=' - ', relevance=10, verification=True))
+                    print "[!] http verif found"
+
+            else:
+                print '\n\n'.join([x.toprettyxml() for x in protos])
             # parse the response for validations
-            return []
+            return ret
     except:
-        print [x.attributes.items() for x in http_proto.childNodes]
+        print http_proto.toprettyxml()
     if len(protos) > 1:
         data_text_lines = protos[1]
     for f in http_proto.firstChild.childNodes:
@@ -85,8 +97,6 @@ def parse(protos):
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
             continue
         if field.attributes['name'].value == 'http.authorization':
-            print field.attributes
-            print [x.attributes for x in field.childNodes]
             ret.append(ModuleStorage(value={'HTTP_AUTH': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
             continue
 
