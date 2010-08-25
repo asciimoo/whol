@@ -35,8 +35,8 @@ PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 
 # TODO write better triggers
 triggers = (
-            (re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U), 'HTTP_POST_USER'),
-            (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'HTTP_POST_PASS'),
+            (re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U), 'username'),
+            (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'password'),
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
 
@@ -60,7 +60,6 @@ def parse(protos):
                 full_response_content = ''.join([hexStringDecode(x.attributes['value'].value) for x in protos[1].childNodes])
                 if verif_trigg.search(full_response_content):
                     # HTTP verification found!
-                    print "HTTP verif FOUND"
                     ret.append(ModuleStorage(value={'HTTP_POST_VERIF': ''}, complete=False, notes=' - ', relevance=10, verification=True))
 
             # else:
@@ -90,14 +89,14 @@ def parse(protos):
 
             for k, v in cookie.iteritems():
                 if v.key.find('SESSID') >= 0:
-                    ret.append(ModuleStorage(value={'HTTP_COOKIE_SESS': v.value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
+                    ret.append(ModuleStorage(value={'session cookie': v.value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
                     break
             continue
         if field.attributes['name'].value == 'http.host':
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
             continue
         if field.attributes['name'].value == 'http.authorization':
-            ret.append(ModuleStorage(value={'HTTP_AUTH': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
+            ret.append(ModuleStorage(value={'http basic auth': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=10))
             continue
 
     if data_text_lines:
