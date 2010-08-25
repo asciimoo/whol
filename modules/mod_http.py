@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #                   WHOL MODULE (HTTP)
 #
@@ -22,6 +23,7 @@
 #       [ModuleStorage] -> 'value'              : {'type': '',}
 #
 
+
 import re
 from urlparse import parse_qsl
 from modutils import hexStringDecode, ModuleStorage
@@ -32,17 +34,13 @@ FILTER_EXPRESSION='http.request.method == "GET" or http.request.method == "POST"
 PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 
 # TODO write better triggers
-userTrigger = re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U)
-passTrigger = re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U)
 triggers = (
             (re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U), 'HTTP_POST_USER'),
             (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'HTTP_POST_PASS'),
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
 
-verif_trigs = (
-            (re.compile('(?:successful )log(?:ged) in', re.I | re.U | re.M), ['HTTP_POST_USER', 'HTTP_POST_PASS']),
-            )
+verif_trigg = re.compile(u'\W*(?:logout|sign out|kijelentkezés)\W*', re.I | re.U | re.M)
 
 def parse(protos):
     if protos[0].firstChild.attributes['name'].value == 'data':
@@ -60,16 +58,18 @@ def parse(protos):
             if protos[1].attributes['name'].value == 'data-text-lines':
                 # TODO write to file?!
                 full_response_content = ''.join([hexStringDecode(x.attributes['value'].value) for x in protos[1].childNodes])
-                if verif_trigs[0][0].match(full_response_content):
+                if verif_trigg.search(full_response_content):
+                    # HTTP verification found!
+                    print "HTTP verif FOUND"
                     ret.append(ModuleStorage(value={'HTTP_POST_VERIF': ''}, complete=False, notes=' - ', relevance=10, verification=True))
-                    print "[!] http verif found"
 
-            else:
-                print '\n\n'.join([x.toprettyxml() for x in protos])
+            # else:
+            #    print '\n\n'.join([x.toprettyxml() for x in protos])
             # parse the response for validations
             return ret
     except:
-        print http_proto.toprettyxml()
+        #print '\n\n'.join([x.toprettyxml() for x in protos])
+        pass
     if len(protos) > 1:
         data_text_lines = protos[1]
     for f in http_proto.firstChild.childNodes:
