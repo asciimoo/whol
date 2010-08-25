@@ -39,6 +39,8 @@ class DataStorage:
         self.proto    = proto
         self.dtype    = dtype
         self.verified = verified
+        # verification progress
+        self.vp       = [len(value.value), 0]
         self.notes    = notes
         # TODO date
         self.updateHash()
@@ -64,6 +66,7 @@ class DataStorage:
         if self.value.complete and self.verified:
             return False
         if p.verification and not self.verified:
+            #use self.vp
             self.verified=True
             self.value.relevance += 10
             return True
