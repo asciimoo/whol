@@ -14,5 +14,11 @@ usage:
 dependencies:
  * tshark - !http://www.wireshark.org/
  * airodump-ng source - !http://www.aircrack-ng.org/
+ * airmon-ng - !http://www.aircrack-ng.org/
  * ksh - !http://kornshell.com/
 
+
+install:
+ * install ksh, tshark, airmon-ng (in debian like systems: (sudo) apt-get install ksh tshark aircrack-ng)
+ * download the airodump-ng source
+ * patch airodump-ng with airodump-ng_wholmod.diff and compile it
