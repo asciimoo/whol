@@ -35,7 +35,8 @@ PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 
 # TODO write better triggers
 triggers = (
-            (re.compile('^[_]?u(?:ser)?(?:name)?$', re.I | re.U), 'username'),
+            # user trigger - username/email
+            (re.compile('^(:?(?:[_]?u(?:ser)?(?:name)?)|(?:e?mail))$', re.I | re.U), 'username'),
             (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'password'),
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
@@ -44,29 +45,29 @@ verif_trigg = re.compile(u'\W*(?:logout|sign out|kijelentkezés)\W*', re.I | re.
 
 # Thx to w3af (collectCookies plugin) for the list of session cookies
 SESSION_DB = ( 
-        ('st8id','Teros web application firewall'), # Web application firewalls
-        ('ASINFO','F5 TrafficShield'),              # Web application firewalls
-        ('NCI__SessionId','Netcontinuum'),          # Web application firewalls
-        ('$OC4J_','Oracle container for java'),     # Oracle
-        ('JSESSIONID','Jakarta Tomcat / Apache'),   # Java
-        ('JServSessionIdroot','Apache JServ'),      # Java
-        ('ASPSESSIONID','ASP'),                     # ASP
-        ('ASP.NET_SessionId','ASP.NET'),            # ASP
-        ('PHPSESSID','PHP'),                        # PHP
-        ('sap-usercontext=sap-language','SAP'),     # SAP
-        ('WebLogicSession','BEA Logic'),            # Others..
+        ('st8id','Teros'),                      # Web application firewalls
+        ('ASINFO','F5'),                        # Web application firewalls
+        ('NCI__SessionId','Netcontinuum'),      # Web application firewalls
+        ('$OC4J_','Oracle'),                    # Oracle
+        ('JSESSIONID','JSP'),                   # Java
+        ('JServSessionIdroot','JServ'),         # Java
+        ('ASPSESSIONID','ASP'),                 # ASP
+        ('ASP.NET_SessionId','ASP.NET'),        # ASP
+        ('PHPSESSID','PHP'),                    # PHP
+        ('sap-usercontext=sap-language','SAP'), # SAP
+        ('WebLogicSession','BEA Logic'),        # Others..
         ('SaneID','Sane NetTracker'),
         ('ssuid','Vignette'),
         ('vgnvisitor','Vignette'),
         ('SESSION_ID','IBM Net.Commerce'),
-        ('NSES40Session','Netscape Enterprise Server'),
+        ('NSES40Session','Netscape'),
         ('iPlanetUserId','iPlanet'),
         ('RMID','RealMedia OpenADStream'),
         ('cftoken','Coldfusion'),
         ('PORTAL-PSJSESSIONID','PeopleSoft'),
         ('WEBTRENDS_ID','WebTrends'),
         ('sesessionid','IBM WebSphere'),
-        ('CGISESSID','Perl CGI::Session'),
+        ('CGISESSID','Perl CGI::'),
         ('GX_SESSION_ID','GeneXus'),
         ('WC_SESSION_ESTABLISHED','WSStore'),
     )
