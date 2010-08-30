@@ -15,6 +15,9 @@ VERSION = '0.1b'
 
 PROTOS = { }
 
+# module content counter
+MCC = 0
+
 # incomplete data container - [ModuleStorage]
 idc = []
 # complete data container - [DataStorage]
@@ -26,18 +29,23 @@ histData = []
 
 class DataStorage:
     '''Simple data storage'''
-    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=None, verified=False, notes=''):
+    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=None, verified=False, notes='', src_str='', dst_str='', date=''):
         self.value    = value
         # need to switch src-dst in verifications
         if value.verification:
             self.src      = dst
             self.dst      = src
+            self.src_str  = src_str
+            self.dst_str  = dst_str
         else:
             self.src      = src
             self.dst      = dst
+            self.src_str  = dst_str
+            self.dst_str  = src_str
         self.desc     = desc
         self.proto    = proto
         self.dtype    = dtype
+        self.date     = date
         self.verified = verified
         # verification progress
         self.vp       = [len(value.value), 0]
@@ -91,16 +99,14 @@ class PacketParser:
                 for ia in x.childNodes:
                     if ia.attributes['name'].value == 'ip.src':
                         self.src['ip'] = ia.attributes['show'].value
-                        self.src_str += self.src['ip']
                     elif ia.attributes['name'].value == 'ip.dst':
                         self.dst['ip'] = ia.attributes['show'].value
-                        self.dst_str += self.dst['ip']
                     elif ia.attributes['name'].value == 'ip.src_host':
                         self.src['host'] = ia.attributes['show'].value
-                        self.src_str += '('+self.src['host']+')'
+                        self.src_str = self.src['host']
                     elif ia.attributes['name'].value == 'ip.dst_host':
                         self.dst['host'] = ia.attributes['show'].value
-                        self.dst_str += '('+self.dst['host']+')'
+                        self.dst_str = self.dst['host']
             elif x.attributes['name'].value == 'tcp':
                 for pa in x.childNodes:
                     if pa.attributes['name'].value == 'tcp.srcport':
@@ -110,7 +116,7 @@ class PacketParser:
             elif x.attributes['name'].value == 'geninfo':
                 for ga in x.childNodes:
                     if ga.attributes['name'].value == 'timestamp':
-                        self.time = ga.attributes['show'].value
+                        self.time = ga.attributes['show'].value.split('.')[0]
 
 
     def decode(self):
@@ -127,7 +133,7 @@ class PacketParser:
                 continue
 
             for d in r:
-                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time))
+                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time), src_str=self.src_str, dst_str=self.dst_str, date=self.time)
                 if d.verification:
                     #if d.complete:
                     #    cdc.append(ds)
@@ -171,8 +177,8 @@ class PacketParser:
         return c
 
 
-def main_loop(relevance_limit):
-    global cdc
+def main_loop(relevance_limit, sesskey=''):
+    global cdc, MCC
     xml_version = sys.stdin.readline()
     pdml_version = sys.stdin.readline()
     line = sys.stdin.readline()
@@ -189,8 +195,16 @@ def main_loop(relevance_limit):
                     packets = p.decode()
                     if packets > 0:
                         # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
-                        # TODO !! 
-                        print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
+                        # TODO !!
+                        for data in filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:]):
+                            print unicode(data)
+                            MCC += 1
+                            if sesskey:
+                                editGridAPI.updateGrid(MCC, data.src_str,
+                                        data.dst_str, data.proto,
+                                        data.value.value, data.date,
+                                        data.value.notes, sesskey)
+                        #print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
                 packet = []
 
         line = sys.stdin.readline()
@@ -210,6 +224,7 @@ if __name__ == '__main__':
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage, version=("%%prog %s" % VERSION))
     parser.add_option("-f", "--filter", action='store_true', dest='filter')
+    parser.add_option("-s", "--session", action='store', type='string', dest='session')
     parser.add_option("-r", "--relevance", action='store', type='float',  dest='relevance', default=10)
     (options, args) = parser.parse_args()
     FILTER_EXP = []
@@ -236,4 +251,6 @@ if __name__ == '__main__':
         print filter_str,
         sys.exit(0)
     print "[!] Relevance filter: %.2f" % options.relevance
-    main_loop(options.relevance)
+    if options.session:
+        import editGridAPI
+    main_loop(options.relevance, sesskey=options.session)
