@@ -41,7 +41,9 @@ triggers = (
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
 
-verif_trigg = re.compile(u'\W*(?:logout|sign out|kijelentkezés)\W*', re.I | re.U | re.M)
+# not as strict as the commented
+verif_trigg = re.compile(u'(?:logout|sign out|kijelentkezés)', re.I | re.U | re.M)
+#verif_trigg = re.compile(u'\W*(?:logout|sign out|kijelentkezés)\W*', re.I | re.U | re.M)
 
 # Thx to w3af (collectCookies plugin) for the list of session cookies
 SESSION_DB = ( 
@@ -71,6 +73,10 @@ SESSION_DB = (
         ('GX_SESSION_ID','GeneXus'),
         ('WC_SESSION_ESTABLISHED','WSStore'),
     )
+
+SESSION_MULTI_DB = {
+        'facebook': ('c_user', 'xs'),           # Facebook.com
+    }
 
 def parse(protos):
     if protos[0].firstChild.attributes['name'].value == 'data':
@@ -117,13 +123,30 @@ def parse(protos):
             except:
                 continue
 
+            multi_cookie = []
             for k, v in cookie.iteritems():
-                if len(ret):
-                    break
-                for s,d in SESSION_DB:
-                    if s == k:
-                        ret.append(ModuleStorage(value={('%s session' % d): v.value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
-                        break
+                if not len(multi_cookie):
+                    for s,d in SESSION_DB:
+                        if s == k:
+                            ret.append(ModuleStorage(value={('%s session' % d): v.value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
+                            break
+                if not len(ret):
+                    if not len(multi_cookie):
+                        for s,d in SESSION_MULTI_DB.iteritems():
+                            for x in d:
+                                if x == k:
+                                    multi_cookie.extend((s, {k:v.value}))
+                                    break
+                            if len(multi_cookie):
+                                break
+                    else:
+                        for x in SESSION_MULTI_DB[multi_cookie[0]]:
+                            if x == k:
+                                multi_cookie[1][k] = v.value
+                                break
+            if len(multi_cookie) and len(multi_cookie[1].values()) == len(SESSION_MULTI_DB[multi_cookie[0]]):
+                ret.append(ModuleStorage(value={('%s session' % multi_cookie[0]): multi_cookie[1].__str__()}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
+
             continue
         if field.attributes['name'].value == 'http.host':
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
