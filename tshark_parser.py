@@ -55,10 +55,10 @@ class DataStorage:
         self.updateId()
 
     def updateHash(self):
-        self.hash = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
+        self.hash = sha1("%s%s%d%s" % (self.src_str, self.dst_str, self.dtype, self.proto)).hexdigest()
 
     def updateId(self):
-        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, str(self.value))).hexdigest()
+        self.id = sha1("%d%s%s" % (self.dtype, self.proto, str(self.value))).hexdigest()
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
@@ -194,16 +194,19 @@ def main_loop(relevance_limit, sesskey=''):
                 else:
                     packets = p.decode()
                     if packets > 0:
-                        # print "%s:%d -> %s:%d (%s) - %s" % (p.src['ip'], p.src['port'], p.dst['ip'], p.dst['port'], p.dst['host'], p.time)
-                        # TODO !!
                         for data in filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:]):
-                            print unicode(data)
                             MCC += 1
+                            # this loop filters the sensitive data
+                            for (k,v) in data.value.value.iteritems():
+                                if k.lower().find('user') < 0:
+                                    l = len(v)
+                                    data.value.value[k] = '%s...' % v[:l-l%4-2]
                             if sesskey:
                                 editGridAPI.updateGrid(MCC, data.src_str,
                                         data.dst_str, data.proto,
                                         data.value.value, data.date,
                                         data.value.notes, sesskey)
+                            print unicode(data)
                         #print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
                 packet = []
 
