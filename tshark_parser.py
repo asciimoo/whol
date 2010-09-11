@@ -60,14 +60,14 @@ class DataStorage:
         self.updateId()
 
     def updateHash(self):
-        self.hash = sha1("%s%s%d%s" % (self.src_str, self.dst_str, self.dtype, self.proto)).hexdigest()
+        self.hash = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
 
     def updateId(self):
         self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, str(self.value))).hexdigest()
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
-        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s\n verified: %s\n" % (self.src, self.dst, unicode(self.value), self.id, self.notes, str(self.verified))
+        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s\n verified: %s\n" % (self.src_str, self.dst_str, unicode(self.value), self.id, self.notes, str(self.verified))
 
     def verify(self):
         if self.verified:
@@ -205,11 +205,15 @@ def main_loop(relevance_limit, sesskey=''):
                     if packets > 0:
                         for data in filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:]):
                             MCC += 1
+                            # print unicode(data)
                             # this loop filters the sensitive data
                             for (k,v) in data.value.value.iteritems():
                                 if k.lower().find('user') < 0:
-                                    l = len(v)
-                                    data.value.value[k] = '%s...' % v[:l-l%4-2]
+                                    # cut = len(v)-len(v)%3-2
+                                    cut = len(v)-3
+                                    if cut > 25:
+                                        cut = 25
+                                    data.value.value[k] = '%s..' % v[:cut]
                             if sesskey:
                                 editGridAPI.updateGrid(MCC, data.src_str,
                                         data.dst_str, data.proto,
