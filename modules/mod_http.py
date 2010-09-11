@@ -72,6 +72,7 @@ SESSION_DB = (
         ('CGISESSID','Perl CGI::'),
         ('GX_SESSION_ID','GeneXus'),
         ('WC_SESSION_ESTABLISHED','WSStore'),
+        ('_twitter_sess', 'Twitter'),           # Twitter.com
     )
 
 SESSION_MULTI_DB = {
