@@ -7,6 +7,7 @@ from hashlib import sha1
 from os import listdir
 from os.path import isfile
 from signal import signal, SIGINT
+import re
 
 
 DATA_TYPES = ['TEXT', 'HEX', 'FILE']
@@ -26,6 +27,10 @@ cdc = []
 hashTable = {}
 
 histData = []
+
+HOST_BLACKLIST = (
+        (re.compile('^www-.+.facebook.*$',  re.I | re.U), 'http'),
+        )
 
 class DataStorage:
     '''Simple data storage'''
@@ -58,7 +63,7 @@ class DataStorage:
         self.hash = sha1("%s%s%d%s" % (self.src_str, self.dst_str, self.dtype, self.proto)).hexdigest()
 
     def updateId(self):
-        self.id = sha1("%d%s%s" % (self.dtype, self.proto, str(self.value))).hexdigest()
+        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, str(self.value))).hexdigest()
         # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
 
     def __unicode__(self):
@@ -118,6 +123,10 @@ class PacketParser:
                     if ga.attributes['name'].value == 'timestamp':
                         self.time = ga.attributes['show'].value.split('.')[0]
 
+        # Stop if src or dst location blacklisted
+        for i in HOST_BLACKLIST:
+            if (i[0].match(self.dst['host']) or i[0].match(self.src['host'])) and i[1] in self.protos:
+                raise Exception('Blacklisted host: %s' % self.dst['host'])
 
     def decode(self):
         c = 0
@@ -189,7 +198,7 @@ def main_loop(relevance_limit, sesskey=''):
             if line.strip() == '</packet>':
                 try:
                     p = PacketParser(''.join(packet))
-                except NameError, e:
+                except Exception, e:
                     print e
                 else:
                     packets = p.decode()
