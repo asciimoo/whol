@@ -9,6 +9,7 @@
 # parse function:
 #     parameters:
 #       protos  -> minidom object of interested protocols
+#       packet  -> the full packet object from tshark_parser.py
 #
 #     return:
 #       [] or
