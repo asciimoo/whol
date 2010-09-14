@@ -85,6 +85,7 @@ class DataStorage:
             return True
         self.value.update(p.value)
         self.value.complete = True
+        self.value.notes += ' %s' % p.notes
         self.updateId()
         return True
 
