@@ -82,7 +82,9 @@ done
 mkfifo $DIR/$FIFO
 airmon-ng start $IFACE 0 $( if [ $QUIET -eq 1 ] ; then echo ' >/dev/null'; fi)
 
-airodump-ng_wholmod -o pcap -w $DIR/$FIFO -t OPN -c $CHANNEL mon0 -p -q&
+MON_IFACE=mon$(($(iwconfig 2>/dev/null | egrep '^mon[0-9]+' | wc -l) - 1))
+
+airodump-ng_wholmod -o pcap -w $DIR/$FIFO -t OPN -c $CHANNEL $MON_IFACE -p -q&
 APID=$!
 
 trap "destruct $APID" INT
