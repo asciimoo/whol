@@ -125,9 +125,9 @@ class PacketParser:
                         self.time = ga.attributes['show'].value.split('.')[0]
 
         # Stop if src or dst location blacklisted
-        for i in HOST_BLACKLIST:
-            if (i[0].match(self.dst['host']) or i[0].match(self.src['host'])) and i[1] in self.protos:
-                raise Exception('Blacklisted host: %s' % self.dst['host'])
+        # for i in HOST_BLACKLIST:
+        #    if (i[0].match(self.dst['host']) or i[0].match(self.src['host'])) and i[1] in self.protos:
+        #        raise Exception('Blacklisted host: %s' % self.dst['host'])
 
     def decode(self):
         c = 0
@@ -143,7 +143,7 @@ class PacketParser:
                 continue
 
             for d in r:
-                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst_str, self.time), src_str=self.src_str, dst_str=self.dst_str, date=self.time)
+                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst['host'], self.time), src_str=self.src['host'], dst_str=self.dst_str, date=self.time)
                 if d.verification:
                     #if d.complete:
                     #    cdc.append(ds)
@@ -271,3 +271,7 @@ if __name__ == '__main__':
     if options.session:
         import editGridAPI
     main_loop(options.relevance, sesskey=options.session)
+    print '\nIncomplete packets:'
+    print '\n'.join(map(unicode, filter(lambda x: x != None, idc)))
+    print '\nComplete Packets:'
+    print '\n'.join(map(unicode, cdc))
