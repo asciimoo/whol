@@ -92,10 +92,8 @@ def parse(protos, packet):
     http_proto = protos[0]
     if packet.src['host'].find('facebook.') >= 0:
         packet.src['host'] = 'facebook.com'
-        print 'fbsrc renamed'
     elif packet.dst['host'].find('facebook.') >= 0:
         packet.dst['host'] = 'facebook.com'
-        print 'fbdst renamed %s' % packet.dst['host']
     try:
         if http_proto.firstChild.childNodes[2].attributes['name'].value == 'http.response.code':
             if protos[1].attributes['name'].value == 'data-text-lines':
