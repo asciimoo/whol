@@ -79,7 +79,7 @@ SESSION_MULTI_DB = {
         'facebook': ('c_user', 'xs'),           # Facebook.com
     }
 
-def parse(protos):
+def parse(protos, packet):
     if protos[0].firstChild.attributes['name'].value == 'data':
         # print "[!] DATA?!"
         return []

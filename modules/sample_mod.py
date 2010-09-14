@@ -24,7 +24,7 @@ FILTER_EXPRESSION='tshark display filter - see http://www.wireshark.org/docs/dfr
 
 PROTO_NAME={'proto'  : 'Long name'}
 
-def parse(proto):
+def parse(proto, full_packet):
     return [ModuleStorage()]
 
 

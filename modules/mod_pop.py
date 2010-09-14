@@ -4,7 +4,7 @@ FILTER_EXPRESSION='pop.request.command == "PASS" or pop.request.command == "USER
 
 PROTO_NAME={'pop'  : 'Post Office Protocol'}
 
-def parse(protos):
+def parse(protos, packet):
     # pop.request.parameter
     t = ''
     if protos[0].firstChild.attributes['name'].value == 'pop.response':

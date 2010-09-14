@@ -136,7 +136,7 @@ class PacketParser:
             if not sys.modules.has_key("modules.mod_%s" % p):
                 continue
             try:
-                r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:])
+                r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:], self)
             except Exception, e:
                 print '[!] %s module cannot decode packet\n\tError: %s\n' % (p, e)
                 print 80*'-'
