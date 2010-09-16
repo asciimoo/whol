@@ -140,10 +140,11 @@ class PacketParser:
             except Exception, e:
                 print '[!] %s module cannot decode packet\n\tError: %s\n' % (p, e)
                 print 80*'-'
+                #print '\n\n'.join([x.toprettyxml() for x in self.dom.childNodes])
                 continue
 
             for d in r:
-                ds = DataStorage(src=self.src['ip'], dst=self.dst['ip'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst['host'], self.time), src_str=self.src['host'], dst_str=self.dst_str, date=self.time)
+                ds = DataStorage(src=self.src['host'], dst=self.dst['host'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst['host'], self.time), src_str=self.src['host'], dst_str=self.dst_str, date=self.time)
                 if d.verification:
                     #if d.complete:
                     #    cdc.append(ds)
