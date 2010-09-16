@@ -45,6 +45,12 @@ triggers = (
 verif_trigg = re.compile(u'(?:logout|sign out|kijelentkezés)', re.I | re.U | re.M)
 #verif_trigg = re.compile(u'\W*(?:logout|sign out|kijelentkezés)\W*', re.I | re.U | re.M)
 
+# information gathering
+I_G = (
+        (re.compile('id="navAccountName">([^<]+)', re.I | re.U), 'facebook.com'),
+        (re.compile('id="me_name">([^<]+)', re.I | re.U), 'twitter.'),
+        )
+
 # Thx to w3af (collectCookies plugin) for the list of session cookies
 SESSION_DB = ( 
         ('st8id','Teros'),                      # Web application firewalls
@@ -72,12 +78,23 @@ SESSION_DB = (
         ('CGISESSID','Perl CGI::'),
         ('GX_SESSION_ID','GeneXus'),
         ('WC_SESSION_ESTABLISHED','WSStore'),
-        ('_twitter_sess', 'Twitter'),           # Twitter.com
+        # this is the session id,  but it changes very fast - ?
+#        ('_twitter_sess', 'Twitter'),           # Twitter.com
+        ('auth_token', 'Twitter'),           # Twitter.com
+        ('soup_session_id', 'Soup'),            # Soup.io
+        ('SID', 'Google'),                      # Google.com
     )
 
 SESSION_MULTI_DB = {
         'facebook': ('c_user', 'xs'),           # Facebook.com
     }
+
+# TODO change to regexp or urlparse..
+HOST_REWRITE = (
+        ('facebook.', 'facebook.com'),
+        ('1e100.net', 'google.com'),
+        ('google.', 'google.com'),
+    )
 
 def parse(protos, packet):
     if protos[0].firstChild.attributes['name'].value == 'data':
@@ -90,18 +107,29 @@ def parse(protos, packet):
     cookie = ''
     data_text_lines = ''
     http_proto = protos[0]
-    if packet.src['host'].find('facebook.') >= 0:
-        packet.src['host'] = 'facebook.com'
-    elif packet.dst['host'].find('facebook.') >= 0:
-        packet.dst['host'] = 'facebook.com'
+    for r in HOST_REWRITE:
+        if packet.src['host'].find(r[0]) >= 0:
+            packet.src['host'] = r[1]
+            break
+        elif packet.dst['host'].find(r[0]) >= 0:
+            packet.dst['host'] = r[1]
+            break
+
     try:
         if http_proto.firstChild.childNodes[2].attributes['name'].value == 'http.response.code':
             if protos[1].attributes['name'].value == 'data-text-lines':
                 # TODO write to file?!
+                notes = ''
                 full_response_content = ''.join([hexStringDecode(x.attributes['value'].value) for x in protos[1].childNodes])
+                for i in I_G:
+                    if packet.src['host'].find(i[1]) >= 0:
+                        m = i[0].search(full_response_content)
+                        if m:
+                            notes = 'User: %s' % m.group(1)
+                            break
                 if verif_trigg.search(full_response_content):
                     # HTTP verification found!
-                    ret.append(ModuleStorage(value={'HTTP_POST_VERIF': ''}, complete=False, notes=' - ', relevance=10, verification=True))
+                    ret.append(ModuleStorage(value={'HTTP_POST_VERIF': ''}, complete=False, notes=notes, relevance=10, verification=True))
 
             # else:
             #    print '\n\n'.join([x.toprettyxml() for x in protos])
