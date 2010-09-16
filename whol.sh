@@ -11,8 +11,10 @@ FIFO='whol_pipe'
 DSNIFF_FIFO='whol_dsniff_pipe'
 QUIET=0
 CHANNEL=0
-DPREFIX=/tmp/whol_tdump
 
+PREF=$(iwconfig 2>/dev/null | egrep '^mon[0-9]+' | wc -l)
+
+DPREFIX=/tmp/whol_tdump$PREF
 
 destruct() {
     if [[ "$STATUS" -gt 0 ]] ; then return; fi
@@ -20,9 +22,9 @@ destruct() {
     R=0
     STATUS=$((STATUS+1))
     if [[ "$1" != "" ]] ; then kill $1; fi
-    airmon-ng stop mon0
-    rm $DIR/$FIFO
-    [[ $DSNIFF ]] && rm $DIR/$DSNIFF_FIFO
+    airmon-ng stop mon$PREF
+    rm $DIR/$FIFO$PREF
+    [[ $DSNIFF ]] && rm $DIR/$DSNIFF_FIFO$PREF
     # TODO more sophisticated destruction..
     [[ $DSNIFF ]] && killall dsniff
 }
@@ -65,7 +67,7 @@ do
         -i|--interface        ) shift; IFACE=$1; shift;;
         -f|--filter           ) shift; FILTER=$1; shift;;
         -w|--write-file       ) shift; W_FILE=$1; shift;;
-        -t|--tmp-dest         ) shift; DPREFIX=$1; shift;;
+        -t|--tmp-dest         ) shift; DPREFIX=$1$PREF; shift;;
         -d|--dsniff           ) shift; DSNIFF=1;;
         -r|--relevance        ) shift; RELEVANCE='-r '$1; shift;;
         -s|--session-str      ) shift; SESSION='-s '$1; shift;;
@@ -79,22 +81,21 @@ done
     exit 1
 }
 
-mkfifo $DIR/$FIFO
-airmon-ng start $IFACE 0 $( if [ $QUIET -eq 1 ] ; then echo ' >/dev/null'; fi)
+mkfifo $DIR/$FIFO$PREF
+airmon-ng start $IFACE $PREF $( if [ $QUIET -eq 1 ] ; then echo ' >/dev/null'; fi)
 
-MON_IFACE=mon$(($(iwconfig 2>/dev/null | egrep '^mon[0-9]+' | wc -l) - 1))
 
-airodump-ng_wholmod -o pcap -w $DIR/$FIFO -t OPN -c $CHANNEL $MON_IFACE -p -q&
+airodump-ng_wholmod -o pcap -w $DIR/$FIFO$PREF -t OPN -c $CHANNEL mon$PREF -p -q&
 APID=$!
 
 trap "destruct $APID" INT
 
 #ettercap -T -d -m ettertest.log -r $FIFO
 
-[[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO && dsniff -m -p $DIR/$DSNIFF_FIFO &
+[[ $DSNIFF ]] && mkfifo $DIR/$DSNIFF_FIFO$PREF && dsniff -m -p $DIR/$DSNIFF_FIFO$PREF &
 
-(cat $DIR/$FIFO |\
-    tee $([[ $DSNIFF ]] && echo -n $DIR/$DSNIFF_FIFO) $W_FILE | \
+(cat $DIR/$FIFO$PREF |\
+    tee $([[ $DSNIFF ]] && echo -n $DIR/$DSNIFF_FIFO$PREF) $W_FILE | \
         tcpdump -r - -C 1 -w $DPREFIX)&
 #       python ./splitpcap.20051126.py | \
 
