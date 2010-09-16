@@ -82,6 +82,8 @@ class DataStorage:
             #use self.vp
             self.verified=True
             self.value.relevance += 10
+            if p.notes:
+                self.value.notes = '%s - %s' % (p.notes, self.value.notes)
             return True
         self.value.update(p.value)
         self.value.complete = True
