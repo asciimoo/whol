@@ -150,16 +150,17 @@ def parse(protos, packet):
                                 multi_cookie[1][k] = v.value
                                 break
             if len(multi_cookie) and len(multi_cookie[1].values()) == len(SESSION_MULTI_DB[multi_cookie[0]]):
-                ret.append(ModuleStorage(value={('%s session' % multi_cookie[0]): multi_cookie[1].__str__()}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
+                ret.append(ModuleStorage(value={('%s session' % multi_cookie[0]): ', '.join(multi_cookie[1].values())}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=3))
 
             continue
         if field.attributes['name'].value == 'http.host':
             host = hexStringDecode(field.attributes['value'].value)[6:].replace('\r\n', '')
             continue
         if field.attributes['name'].value == 'http.authorization':
-            # TODO - find a method to verify http basic authentication
-            ret.append(ModuleStorage(value={'http basic auth': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=11))
-            continue
+            if field.firstChild.attributes['name'].value == 'http.authbasic':
+                # TODO - find a method to verify http basic authentication
+                ret.append(ModuleStorage(value={'http basic auth': field.firstChild.attributes['show'].value}, complete=True, notes='"%s %s" @ %s' % (method, uri, host), relevance=11))
+                continue
 
     if data_text_lines:
         try:
