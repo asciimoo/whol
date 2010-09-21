@@ -1,288 +1,397 @@
 Index: airodump-ng.c
 ===================================================================
---- airodump-ng.c	(revision 1734)
-+++ airodump-ng.c	(working copy)
-@@ -624,6 +624,11 @@
- "                    2     : Hop on last\n"
- "      -s                  : same as --cswitch\n"
- "\n"
-+"      --no-gui            : run without gui - useful for monitoring\n"
-+"      -q                  : same as --no-gui\n"
-+"      --no_prefix         : write pcap with filename specified in --write - no prefixing\n"
-+"      -p                  : same as --no_prefix\n"
-+"\n"
- "      --help              : Displays this usage screen\n"
- "\n";
- 
-@@ -839,8 +844,8 @@
-         memset(ofn, 0, ofn_len);
-         snprintf( ofn,  ofn_len, "%s-%02d.%s",
-                   prefix, G.f_index, AIRODUMP_NG_CAP_EXT );
--
--        if( ( G.f_cap = fopen( ofn, "wb+" ) ) == NULL )
-+        if(G.no_prefix) memcpy( ofn, prefix, strlen( prefix ) + 1 );
-+        if( ( G.f_cap = fopen(ofn, "wb+" ) ) == NULL )
-         {
-             perror( "fopen failed" );
-             fprintf( stderr, "Could not create \"%s\".\n", ofn );
-@@ -4313,9 +4318,11 @@
-     if( signum == SIGUSR2 )
-         unused = read( G.gc_pipe[0], &G.gps_loc, sizeof( float ) * 5 );
- 
--    if( signum == SIGINT || signum == SIGTERM )
--    {
--	reset_term();
-+    if( signum == SIGINT || signum == SIGTERM || signum == SIGKILL)
-+    {   
-+        if(G.no_gui) 
-+            exit(0);
-+        reset_term();
-         alarm( 1 );
-         G.do_exit = 1;
-         signal( SIGALRM, sighandler );
-@@ -4324,17 +4331,21 @@
- 
-     if( signum == SIGSEGV )
-     {
--        fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
--                         " contact the author!\33[?25h\n\n" );
--        fflush( stdout );
-+        if(!G.no_gui) {
-+            fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
-+                             " contact the author!\33[?25h\n\n" );
-+            fflush( stdout );
-+        }
-         exit( 1 );
-     }
- 
-     if( signum == SIGALRM )
--    {
--        fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
--                         " contact the author!\33[?25h\n\n" );
--        fflush( stdout );
-+    {   
-+        if(!G.no_gui) {
-+            fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
-+                             " contact the author!\33[?25h\n\n" );
-+            fflush( stdout );
-+        }
-         exit( 1 );
-     }
- 
-@@ -4342,9 +4353,10 @@
-         wait( NULL );
- 
-     if( signum == SIGWINCH )
--    {
--        fprintf( stderr, "\33[2J" );
--        fflush( stdout );
-+    {   if(!G.no_gui) {
-+            fprintf( stderr, "\33[2J" );
-+            fflush( stdout );
-+        }
-     }
- }
- 
-@@ -5231,15 +5243,12 @@
-         {"showack",  0, 0, 'A'},
-         {"detect-anomaly", 0, 0, 'E'},
-         {"output-format",  1, 0, 'o'},
-+        {"no-gui",  0, 0, 'q'},
-+        {"no-prefix",  0, 0, 'p'},
-         {0,          0, 0,  0 }
-     };
- 
- 
--	pthread_mutex_init( &(G.mx_print), NULL );
--    pthread_mutex_init( &(G.mx_sort), NULL );
--
--    textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
--
- 	/* initialize a bunch of variables */
- 
- 	srand( time( NULL ) );
-@@ -5302,6 +5311,9 @@
-     G.output_format_kismet_csv = 1;
-     G.output_format_kismet_netxml = 1;
- 
-+    G.no_gui = 0;
-+    G.no_prefix = 0;
-+
- 	// Default selection.
-     resetSelection();
- 
-@@ -5379,7 +5391,7 @@
-         option_index = 0;
- 
-         option = getopt_long( argc, argv,
--                        "b:c:egiw:s:t:u:m:d:aHDB:Ahf:r:EC:o:x:",
-+                        "b:c:egiw:s:t:u:m:d:aHDB:Ahqpf:r:EC:o:x:",
-                         long_options, &option_index );
- 
-         if( option < 0 ) break;
-@@ -5660,6 +5672,8 @@
- 							G.output_format_csv = 1;
- 						} else if (strncasecmp(output_format_string, "pcap", 4) == 0
- 							|| strncasecmp(output_format_string, "cap", 3) == 0) {
-                             if (ivs_only) {
-                                 printf( usage, getVersion("Airodump-ng", _MAJ, _MIN, _SUB_MIN, _REVISION, _BETA, _RC)  );
-                                 fprintf(stderr, "Invalid output format: IVS and PCAP format cannot be used together.\n");
-@@ -5708,6 +5722,16 @@
- 
- 				break;
- 
-+            case 'q':
-+
-+                G.no_gui = 1;
-+				break;
-+
-+            case 'p':
-+
-+                G.no_prefix = 1;
-+				break;
-+
-             case 'H':
- 
-                 printf( usage, getVersion("Airodump-ng", _MAJ, _MIN, _SUB_MIN, _REVISION, _BETA, _RC)  );
-@@ -5724,7 +5748,13 @@
-             default : goto usage;
-         }
-     } while ( 1 );
-+    pthread_mutex_init( &(G.mx_sort), NULL );
- 
-+    if(!G.no_gui) {
-+        pthread_mutex_init( &(G.mx_print), NULL );
-+
-+        textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
-+    }
-     if( argc - optind != 1 && G.s_file == NULL)
-     {
-         if(argc == 1)
-@@ -5929,6 +5959,7 @@
-     signal( SIGINT,   sighandler );
-     signal( SIGSEGV,  sighandler );
-     signal( SIGTERM,  sighandler );
-+    signal( SIGKILL,  sighandler );
-     signal( SIGWINCH, sighandler );
- 
-     sighandler( SIGWINCH );
-@@ -5954,9 +5985,9 @@
-         usleep( 50000 );
-         waitpid( -1, NULL, WNOHANG );
-     }
-+    
-+    if(!G.no_gui) fprintf( stderr, "\33[?25l\33[2J\n" );
- 
--    fprintf( stderr, "\33[?25l\33[2J\n" );
--
-     start_time = time( NULL );
-     tt1        = time( NULL );
-     tt2        = time( NULL );
-@@ -5974,11 +6005,14 @@
-     strncpy(G.airodump_start_time, ctime( & start_time ), 1000 - 1);
-     G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
-     G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
--
--    if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
-+    
-+    if(!G.no_gui) 
-     {
--	perror( "pthread_create failed" );
--	return 1;
-+        if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
-+        {
-+        perror( "pthread_create failed" );
-+        return 1;
-+        }
-     }
- 
- 
-@@ -6177,11 +6211,12 @@
-                     continue;
-                 }
-                 perror( "select failed" );
--
--                /* Restore terminal */
--                fprintf( stderr, "\33[?25h" );
--                fflush( stdout );
--
-+                
-+                if(!G.no_gui) {
-+                    /* Restore terminal */
-+                    fprintf( stderr, "\33[?25h" );
-+                    fflush( stdout );
-+                }
-                 return( 1 );
-             }
-         }
-@@ -6212,16 +6247,16 @@
- 
-             /* display the list of access points we have */
- 
--	    if(!G.do_pause) {
--		pthread_mutex_lock( &(G.mx_print) );
-+            if(!G.do_pause && !G.no_gui) {
-+                pthread_mutex_lock( &(G.mx_print) );
- 
--		    fprintf( stderr, "\33[1;1H" );
--		    dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
--		    fprintf( stderr, "\33[J" );
--		    fflush( stdout );
-+                    fprintf( stderr, "\33[1;1H" );
-+                    dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
-+                    fprintf( stderr, "\33[J" );
-+                    fflush( stdout );
- 
--		pthread_mutex_unlock( &(G.mx_print) );
--	    }
-+                pthread_mutex_unlock( &(G.mx_print) );
-+            }
-             continue;
-         }
- 
-@@ -6255,11 +6290,12 @@
-                         wi[i] = wi_open(ifnam);
-                         if (!wi[i]) {
-                             printf("Can't reopen %s\n", ifnam);
-+                            if(!G.no_gui) {
-+                                /* Restore terminal */
-+                                fprintf( stderr, "\33[?25h" );
-+                                fflush( stdout );
-+                            }
- 
--                            /* Restore terminal */
--                            fprintf( stderr, "\33[?25h" );
--                            fflush( stdout );
--
-                             exit(1);
-                         }
- 
-@@ -6391,9 +6427,11 @@
- 	    oui_cur = oui_next;
-         }
-     }
-+    
-+    if(!G.no_gui) {
-+        fprintf( stderr, "\33[?25h" );
-+        fflush( stdout );
-+    }
- 
--    fprintf( stderr, "\33[?25h" );
--    fflush( stdout );
--
-     return( 0 );
- }
+*** airodump-ng.c	2010-09-20 15:00:10.154582492 +0200
+--- airodump-ng_wholmod.c	2010-09-20 14:58:45.203334358 +0200
+***************
+*** 624,629 ****
+--- 624,634 ----
+  "                    2     : Hop on last\n"
+  "      -s                  : same as --cswitch\n"
+  "\n"
++ "      --no-gui            : run without gui - useful for monitoring\n"
++ "      -q                  : same as --no-gui\n"
++ "      --no_prefix         : write pcap with filename specified in --write - no prefixing\n"
++ "      -p                  : same as --no_prefix\n"
++ "\n"
+  "      --help              : Displays this usage screen\n"
+  "\n";
+  
+***************
+*** 840,846 ****
+          snprintf( ofn,  ofn_len, "%s-%02d.%s",
+                    prefix, G.f_index, AIRODUMP_NG_CAP_EXT );
+  
+!         if( ( G.f_cap = fopen( ofn, "wb+" ) ) == NULL )
+          {
+              perror( "fopen failed" );
+              fprintf( stderr, "Could not create \"%s\".\n", ofn );
+--- 845,852 ----
+          snprintf( ofn,  ofn_len, "%s-%02d.%s",
+                    prefix, G.f_index, AIRODUMP_NG_CAP_EXT );
+  
+!         if(G.no_prefix) memcpy( ofn, prefix, strlen( prefix ) + 1 );
+! 	if( ( G.f_cap = fopen(ofn, "wb+" ) ) == NULL )
+          {
+              perror( "fopen failed" );
+              fprintf( stderr, "Could not create \"%s\".\n", ofn );
+***************
+*** 4319,4327 ****
+      if( signum == SIGUSR2 )
+          unused = read( G.gc_pipe[0], &G.gps_loc, sizeof( float ) * 5 );
+  
+!     if( signum == SIGINT || signum == SIGTERM )
+      {
+! 	reset_term();
+          alarm( 1 );
+          G.do_exit = 1;
+          signal( SIGALRM, sighandler );
+--- 4325,4335 ----
+      if( signum == SIGUSR2 )
+          unused = read( G.gc_pipe[0], &G.gps_loc, sizeof( float ) * 5 );
+  
+!     if( signum == SIGINT || signum == SIGTERM || signum == SIGKILL)
+      {
+!         if(G.no_gui) 
+!             exit(0);
+!         reset_term();
+          alarm( 1 );
+          G.do_exit = 1;
+          signal( SIGALRM, sighandler );
+***************
+*** 4330,4346 ****
+  
+      if( signum == SIGSEGV )
+      {
+!         fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
+!                          " contact the author!\33[?25h\n\n" );
+!         fflush( stdout );
+          exit( 1 );
+      }
+  
+      if( signum == SIGALRM )
+!     {
+!         fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
+!                          " contact the author!\33[?25h\n\n" );
+!         fflush( stdout );
+          exit( 1 );
+      }
+  
+--- 4338,4358 ----
+  
+      if( signum == SIGSEGV )
+      {
+!         if(!G.no_gui) {
+!             fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
+!                              " contact the author!\33[?25h\n\n" );
+!             fflush( stdout );
+!         }
+          exit( 1 );
+      }
+  
+      if( signum == SIGALRM )
+!     {   
+!         if(!G.no_gui) {
+!             fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
+!                              " contact the author!\33[?25h\n\n" );
+!             fflush( stdout );
+!         }
+          exit( 1 );
+      }
+  
+***************
+*** 4348,4356 ****
+          wait( NULL );
+  
+      if( signum == SIGWINCH )
+!     {
+!         fprintf( stderr, "\33[2J" );
+!         fflush( stdout );
+      }
+  }
+  
+--- 4360,4369 ----
+          wait( NULL );
+  
+      if( signum == SIGWINCH )
+!     {   if(!G.no_gui) {
+!             fprintf( stderr, "\33[2J" );
+!             fflush( stdout );
+!         }
+      }
+  }
+  
+***************
+*** 5237,5251 ****
+          {"showack",  0, 0, 'A'},
+          {"detect-anomaly", 0, 0, 'E'},
+          {"output-format",  1, 0, 'o'},
+          {0,          0, 0,  0 }
+      };
+  
+  
+- 	pthread_mutex_init( &(G.mx_print), NULL );
+-     pthread_mutex_init( &(G.mx_sort), NULL );
+- 
+-     textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
+- 
+  	/* initialize a bunch of variables */
+  
+  	srand( time( NULL ) );
+--- 5250,5261 ----
+          {"showack",  0, 0, 'A'},
+          {"detect-anomaly", 0, 0, 'E'},
+          {"output-format",  1, 0, 'o'},
++         {"no-gui",  0, 0, 'q'},
++         {"no-prefix",  0, 0, 'p'},
+          {0,          0, 0,  0 }
+      };
+  
+  
+  	/* initialize a bunch of variables */
+  
+  	srand( time( NULL ) );
+***************
+*** 5308,5313 ****
+--- 5318,5326 ----
+      G.output_format_kismet_csv = 1;
+      G.output_format_kismet_netxml = 1;
+  
++     G.no_gui = 0;
++     G.no_prefix = 0;
++ 
+  	// Default selection.
+      resetSelection();
+  
+***************
+*** 5385,5391 ****
+          option_index = 0;
+  
+          option = getopt_long( argc, argv,
+!                         "b:c:egiw:s:t:u:m:d:aHDB:Ahf:r:EC:o:x:",
+                          long_options, &option_index );
+  
+          if( option < 0 ) break;
+--- 5398,5404 ----
+          option_index = 0;
+  
+          option = getopt_long( argc, argv,
+!                         "b:c:egiw:s:t:u:m:d:aHDB:Ahqpf:r:EC:o:x:",
+                          long_options, &option_index );
+  
+          if( option < 0 ) break;
+***************
+*** 5713,5719 ****
+--- 5726,5740 ----
+  				}
+  
+  				break;
++             case 'q':
++ 
++                 G.no_gui = 1;
++                                break;
++ 
++             case 'p':
+  
++                 G.no_prefix = 1;
++                                break;
+              case 'H':
+  
+                  printf( usage, getVersion("Airodump-ng", _MAJ, _MIN, _SUB_MIN, _REVISION, _BETA, _RC)  );
+***************
+*** 5731,5736 ****
+--- 5752,5765 ----
+          }
+      } while ( 1 );
+  
++     pthread_mutex_init( &(G.mx_sort), NULL );
++ 
++     if(!G.no_gui) {
++         pthread_mutex_init( &(G.mx_print), NULL );
++ 
++         textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
++     }
++ 
+      if( argc - optind != 1 && G.s_file == NULL)
+      {
+          if(argc == 1)
+***************
+*** 5935,5940 ****
+--- 5964,5970 ----
+      signal( SIGINT,   sighandler );
+      signal( SIGSEGV,  sighandler );
+      signal( SIGTERM,  sighandler );
++     signal( SIGKILL,  sighandler );
+      signal( SIGWINCH, sighandler );
+  
+      sighandler( SIGWINCH );
+***************
+*** 5961,5967 ****
+          waitpid( -1, NULL, WNOHANG );
+      }
+  
+!     fprintf( stderr, "\33[?25l\33[2J\n" );
+  
+      start_time = time( NULL );
+      tt1        = time( NULL );
+--- 5991,5997 ----
+          waitpid( -1, NULL, WNOHANG );
+      }
+  
+!     if(!G.no_gui) fprintf( stderr, "\33[?25l\33[2J\n" );
+  
+      start_time = time( NULL );
+      tt1        = time( NULL );
+***************
+*** 5981,5990 ****
+      G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
+      G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
+  
+!     if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
+      {
+! 	perror( "pthread_create failed" );
+! 	return 1;
+      }
+  
+  
+--- 6011,6023 ----
+      G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
+      G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
+  
+!     if(!G.no_gui)
+      {
+!         if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
+!         {
+!         perror( "pthread_create failed" );
+!         return 1;
+!         }
+      }
+  
+  
+***************
+*** 6184,6192 ****
+                  }
+                  perror( "select failed" );
+  
+!                 /* Restore terminal */
+!                 fprintf( stderr, "\33[?25h" );
+!                 fflush( stdout );
+  
+                  return( 1 );
+              }
+--- 6217,6227 ----
+                  }
+                  perror( "select failed" );
+  
+!                 if(!G.no_gui) {
+!                     /* Restore terminal */
+!                     fprintf( stderr, "\33[?25h" );
+!                     fflush( stdout );
+!                 }
+  
+                  return( 1 );
+              }
+***************
+*** 6218,6237 ****
+  
+              /* display the list of access points we have */
+  
+! 	    if(!G.do_pause) {
+! 		pthread_mutex_lock( &(G.mx_print) );
+  
+! 		    fprintf( stderr, "\33[1;1H" );
+! 		    dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
+! 		    fprintf( stderr, "\33[J" );
+! 		    fflush( stdout );
+  
+! 		pthread_mutex_unlock( &(G.mx_print) );
+! 	    }
+              continue;
+          }
+  
+!         if(G.s_file == NULL && G.s_iface != NULL)
+          {
+              fd_is_set = 0;
+  
+--- 6253,6272 ----
+  
+              /* display the list of access points we have */
+  
+!             if(!G.do_pause && !G.no_gui) {
+!                 pthread_mutex_lock( &(G.mx_print) );
+  
+!                     fprintf( stderr, "\33[1;1H" );
+!                     dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
+!                     fprintf( stderr, "\33[J" );
+!                     fflush( stdout );
+  
+!                 pthread_mutex_unlock( &(G.mx_print) );
+!             }
+              continue;
+          }
+  
+! 	if(G.s_file == NULL && G.s_iface != NULL)
+          {
+              fd_is_set = 0;
+  
+***************
+*** 6261,6270 ****
+                          wi[i] = wi_open(ifnam);
+                          if (!wi[i]) {
+                              printf("Can't reopen %s\n", ifnam);
+! 
+!                             /* Restore terminal */
+!                             fprintf( stderr, "\33[?25h" );
+!                             fflush( stdout );
+  
+                              exit(1);
+                          }
+--- 6296,6306 ----
+                          wi[i] = wi_open(ifnam);
+                          if (!wi[i]) {
+                              printf("Can't reopen %s\n", ifnam);
+!                             if(!G.no_gui) {
+!                                 /* Restore terminal */
+!                                 fprintf( stderr, "\33[?25h" );
+!                                 fflush( stdout );
+!                             }
+  
+                              exit(1);
+                          }
+***************
+*** 6398,6405 ****
+          }
+      }
+  
+!     fprintf( stderr, "\33[?25h" );
+!     fflush( stdout );
+  
+      return( 0 );
+  }
+--- 6434,6444 ----
+          }
+      }
+  
+!     
+!     if(!G.no_gui) {
+!         fprintf( stderr, "\33[?25h" );
+!         fflush( stdout );
+!     }
+  
+      return( 0 );
+  }
 Index: airodump-ng.h
 ===================================================================
---- airodump-ng.h	(revision 1734)
-+++ airodump-ng.h	(working copy)
-@@ -418,6 +418,9 @@
-     pthread_mutex_t mx_sort;			 /* lock write access to ap LL   */
-     
-     uchar selected_bssid[6];	/* bssid that is selected */
-+
-+    char no_gui;
-+    char no_prefix;
- }
- G;
- 
+*** airodump-ng.h	2010-09-20 15:00:10.154582492 +0200
+--- airodump-ng_wholmod.h	2010-09-20 15:00:04.003332547 +0200
+***************
+*** 418,423 ****
+--- 418,426 ----
+      pthread_mutex_t mx_sort;			 /* lock write access to ap LL   */
+      
+      uchar selected_bssid[6];	/* bssid that is selected */
++ 
++     char no_gui;
++     char no_prefix;
+  }
+  G;
+  
