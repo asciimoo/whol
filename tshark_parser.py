@@ -83,11 +83,14 @@ class DataStorage:
             self.verified=True
             self.value.relevance += 10
             if p.notes:
-                self.value.notes = '%s - %s' % (p.notes, self.value.notes)
+                try:
+                    self.value.notes = u'%s - %s' % (p.notes, self.value.notes)
+                except:
+                    pass
             return True
         self.value.update(p.value)
         self.value.complete = True
-        self.value.notes += ' %s' % p.notes
+        # self.value.notes += ' %s' % p.notes
         self.updateId()
         return True
 
@@ -203,7 +206,8 @@ def main_loop(relevance_limit, sesskey=''):
                 try:
                     p = PacketParser(''.join(packet))
                 except Exception, e:
-                    print e
+                    # print e
+                    pass
                 else:
                     packets = p.decode()
                     if packets > 0:
@@ -218,11 +222,15 @@ def main_loop(relevance_limit, sesskey=''):
                                     if cut > 25:
                                         cut = 25
                                     data.value.value[k] = '%s..' % v[:cut]
+                            data.value.value = ', '.join(['%s:%s' % (k[0], k[1]) for k in data.value.value.iteritems()])
                             if sesskey:
-                                editGridAPI.updateGrid(MCC, data.src_str,
-                                        data.dst_str, data.proto,
-                                        data.value.value, data.date,
-                                        data.value.notes, sesskey)
+                                try:
+                                    editGridAPI.updateGrid(' x ', data.src_str,
+                                            data.dst_str, data.proto,
+                                            data.value.value, data.date,
+                                            data.value.notes, sesskey)
+                                except:
+                                    pass
                             print unicode(data)
                         #print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
                 packet = []
@@ -272,7 +280,10 @@ if __name__ == '__main__':
         sys.exit(0)
     print "[!] Relevance filter: %.2f" % options.relevance
     if options.session:
-        import editGridAPI
+        try:
+            import editGridAPI
+        except:
+            options.session = ''
     main_loop(options.relevance, sesskey=options.session)
     print '\nIncomplete packets:'
     print '\n'.join(map(unicode, filter(lambda x: x != None, idc)))
