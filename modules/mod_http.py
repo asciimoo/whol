@@ -36,8 +36,8 @@ PROTO_NAME = {'http' : 'Hypertext Transfer Protocol'}
 # TODO write better triggers
 triggers = (
             # user trigger - username/email
-            (re.compile('^(:?(?:[_]?u(?:ser)?(?:name)?)|(?:e?mail))$', re.I | re.U), 'username'),
-            (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'password'),
+            (re.compile('^(:?(?:[_]?u(?:ser)?(?:name)?)|(?:e?mail))$', re.I | re.U), 'user'),
+            (re.compile('^[_]?p(?:ass)?(?:w)?(?:ord)?$', re.I | re.U), 'pass'),
             #(re.compile('sessid', re.I | re.U), 'HTTP_POST_SESS'),
            )
 
