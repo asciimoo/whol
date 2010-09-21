@@ -14,7 +14,7 @@ SHEETID = 78692657
 def updateGrid(index, src, dst, proto, data, date, notes, sess_str=SESS_K, sheetId=SHEETID):
     wsdl.insertRow(sess_str, sheetId, 6, 1)
     return wsdl.setCellValues(sess_str, sheetId, (
-        Types.structType({'text': '%d' % index, 'col': 0, 'sheetId': SHEETID, 'row': 6}),
+        Types.structType({'text': '%s' % index, 'col': 0, 'sheetId': SHEETID, 'row': 6}),
         Types.structType({'text': '%s' %   src, 'col': 1, 'sheetId': SHEETID, 'row': 6}),
         Types.structType({'text': '%s' %   dst, 'col': 2, 'sheetId': SHEETID, 'row': 6}),
         Types.structType({'text': '%s' %  data, 'col': 3, 'sheetId': SHEETID, 'row': 6}),
