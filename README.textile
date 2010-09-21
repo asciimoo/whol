@@ -21,4 +21,4 @@ dependencies:
 install:
  * install ksh, tshark, airmon-ng (in debian like systems: (sudo) apt-get install ksh tshark aircrack-ng)
  * download the airodump-ng source
- * patch airodump-ng with airodump-ng_wholmod.diff and compile it
+ * patch airodump-ng with airodump-ng_wholmod.diff (tested with revision 1775) and compile it
