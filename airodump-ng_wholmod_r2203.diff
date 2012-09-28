@@ -1,0 +1,387 @@
+Index: airodump-ng.c
+===================================================================
+*** src/airodump-ng.c	2012-09-28 11:56:12.470923281 +0200
+--- src/airodump-ng_wholmod.c	2012-09-28 12:18:44.007548803 +0200
+***************
+*** 65,71 ****
+  #include "uniqueiv.h"
+  #include "crypto.h"
+  #include "osdep/osdep.h"
+! #include "airodump-ng.h"
+  #include "osdep/common.h"
+  #include "common.h"
+  
+--- 65,71 ----
+  #include "uniqueiv.h"
+  #include "crypto.h"
+  #include "osdep/osdep.h"
+! #include "airodump-ng_wholmod.h"
+  #include "osdep/common.h"
+  #include "common.h"
+  
+***************
+*** 635,640 ****
+--- 635,645 ----
+  "                    2       : Hop on last\n"
+  "      -s                    : same as --cswitch\n"
+  "\n"
++ "      --no-gui              : run without gui - useful for monitoring\n"
++ "      -q                    : same as --no-gui\n"
++ "      --no_prefix           : write pcap with filename specified in --write - no prefixing\n"
++ "      -p                    : same as --no_prefix\n"
++ "\n"
+  "      --help                : Displays this usage screen\n"
+  "\n";
+  
+***************
+*** 851,856 ****
+--- 856,862 ----
+          snprintf( ofn,  ofn_len, "%s-%02d.%s",
+                    prefix, G.f_index, AIRODUMP_NG_CAP_EXT );
+  
++         if(G.no_prefix) memcpy( ofn, prefix, strlen( prefix ) + 1 );
+          if( ( G.f_cap = fopen( ofn, "wb+" ) ) == NULL )
+          {
+              perror( "fopen failed" );
+***************
+*** 4349,4357 ****
+      if( signum == SIGUSR2 )
+          unused = read( G.gc_pipe[0], &G.gps_loc, sizeof( float ) * 5 );
+  
+!     if( signum == SIGINT || signum == SIGTERM )
+      {
+! 	reset_term();
+          alarm( 1 );
+          G.do_exit = 1;
+          signal( SIGALRM, sighandler );
+--- 4355,4365 ----
+      if( signum == SIGUSR2 )
+          unused = read( G.gc_pipe[0], &G.gps_loc, sizeof( float ) * 5 );
+  
+!     if( signum == SIGINT || signum == SIGTERM || signum == SIGKILL )
+      {
+!         if(G.no_gui)
+!             exit(0);
+! 	    reset_term();
+          alarm( 1 );
+          G.do_exit = 1;
+          signal( SIGALRM, sighandler );
+***************
+*** 4360,4376 ****
+  
+      if( signum == SIGSEGV )
+      {
+!         fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
+!                          " contact the author!\33[?25h\n\n" );
+!         fflush( stdout );
+          exit( 1 );
+      }
+  
+      if( signum == SIGALRM )
+      {
+!         fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
+!                          " contact the author!\33[?25h\n\n" );
+!         fflush( stdout );
+          exit( 1 );
+      }
+  
+--- 4368,4388 ----
+  
+      if( signum == SIGSEGV )
+      {
+!         if(!G.no_gui){
+!             fprintf( stderr, "Caught signal 11 (SIGSEGV). Please"
+!                              " contact the author!\33[?25h\n\n" );
+!             fflush( stdout );
+!         }
+          exit( 1 );
+      }
+  
+      if( signum == SIGALRM )
+      {
+!         if(!G.no_gui){
+!             fprintf( stderr, "Caught signal 14 (SIGALRM). Please"
+!                              " contact the author!\33[?25h\n\n" );
+!             fflush( stdout );
+!         }
+          exit( 1 );
+      }
+  
+***************
+*** 4379,4386 ****
+  
+      if( signum == SIGWINCH )
+      {
+!         fprintf( stderr, "\33[2J" );
+!         fflush( stdout );
+      }
+  }
+  
+--- 4391,4400 ----
+  
+      if( signum == SIGWINCH )
+      {
+!         if(!G.no_gui){
+!             fprintf( stderr, "\33[2J" );
+!             fflush( stdout );
+!         }
+      }
+  }
+  
+***************
+*** 5269,5274 ****
+--- 5283,5290 ----
+          {"detect-anomaly", 0, 0, 'E'},
+          {"output-format",  1, 0, 'o'},
+          {"ignore-negative-one", 0, &G.ignore_negative_one, 1},
++         {"no-gui", 0, 0, 'q'},
++         {"no-prefix", 0, 0, 'p'},
+          {0,          0, 0,  0 }
+      };
+  
+***************
+*** 5281,5291 ****
+      // Tell Libgcrypt that initialization has completed.
+      gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  #endif
+- 	pthread_mutex_init( &(G.mx_print), NULL );
+-     pthread_mutex_init( &(G.mx_sort), NULL );
+- 
+-     textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
+- 
+  	/* initialize a bunch of variables */
+  
+  	srand( time( NULL ) );
+--- 5297,5302 ----
+***************
+*** 5348,5353 ****
+--- 5359,5367 ----
+      G.output_format_kismet_csv = 1;
+      G.output_format_kismet_netxml = 1;
+  
++     G.no_gui = 0;
++     G.no_prefix = 0;
++ 
+  	// Default selection.
+      resetSelection();
+  
+***************
+*** 5425,5431 ****
+          option_index = 0;
+  
+          option = getopt_long( argc, argv,
+!                         "b:c:egiw:s:t:u:m:d:aHDB:Ahf:r:EC:o:x:",
+                          long_options, &option_index );
+  
+          if( option < 0 ) break;
+--- 5439,5445 ----
+          option_index = 0;
+  
+          option = getopt_long( argc, argv,
+!                         "b:c:egiw:s:t:u:m:d:aHDB:Ahqpf:r:EC:o:x:",
+                          long_options, &option_index );
+  
+          if( option < 0 ) break;
+***************
+*** 5754,5759 ****
+--- 5768,5783 ----
+  
+  				break;
+  
++             case 'q':
++ 
++                 G.no_gui = 1;
++                 break;
++ 
++             case 'p':
++ 
++                 G.no_prefix = 1;
++                 break;
++ 
+              case 'H':
+  
+                  printf( usage, getVersion("Airodump-ng", _MAJ, _MIN, _SUB_MIN, _REVISION, _BETA, _RC)  );
+***************
+*** 5771,5776 ****
+--- 5795,5807 ----
+          }
+      } while ( 1 );
+  
++     pthread_mutex_init( &(G.mx_sort), NULL );
++ 
++     if(!G.no_gui) {
++         pthread_mutex_init( &(G.mx_print), NULL );
++         textstyle(TEXT_RESET);//(TEXT_RESET, TEXT_BLACK, TEXT_WHITE);
++     }
++ 
+      if( argc - optind != 1 && G.s_file == NULL)
+      {
+          if(argc == 1)
+***************
+*** 5975,5980 ****
+--- 6006,6012 ----
+      signal( SIGINT,   sighandler );
+      signal( SIGSEGV,  sighandler );
+      signal( SIGTERM,  sighandler );
++     signal( SIGKILL,  sighandler );
+      signal( SIGWINCH, sighandler );
+  
+      sighandler( SIGWINCH );
+***************
+*** 6001,6007 ****
+          waitpid( -1, NULL, WNOHANG );
+      }
+  
+!     fprintf( stderr, "\33[?25l\33[2J\n" );
+  
+      start_time = time( NULL );
+      tt1        = time( NULL );
+--- 6033,6039 ----
+          waitpid( -1, NULL, WNOHANG );
+      }
+  
+!     if(!G.no_gui) fprintf( stderr, "\33[?25l\33[2J\n" );
+  
+      start_time = time( NULL );
+      tt1        = time( NULL );
+***************
+*** 6021,6030 ****
+      G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
+      G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
+  
+!     if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
+!     {
+! 	perror( "pthread_create failed" );
+! 	return 1;
+      }
+  
+  
+--- 6053,6064 ----
+      G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
+      G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
+  
+!     if(!G.no_gui){
+!         if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
+!         {
+!         perror( "pthread_create failed" );
+!         return 1;
+!         }
+      }
+  
+  
+***************
+*** 6224,6232 ****
+                  }
+                  perror( "select failed" );
+  
+!                 /* Restore terminal */
+!                 fprintf( stderr, "\33[?25h" );
+!                 fflush( stdout );
+  
+                  return( 1 );
+              }
+--- 6258,6268 ----
+                  }
+                  perror( "select failed" );
+  
+!                 if(!G.no_gui) {
+!                     /* Restore terminal */
+!                     fprintf( stderr, "\33[?25h" );
+!                     fflush( stdout );
+!                 }
+  
+                  return( 1 );
+              }
+***************
+*** 6258,6272 ****
+  
+              /* display the list of access points we have */
+  
+! 	    if(!G.do_pause) {
+! 		pthread_mutex_lock( &(G.mx_print) );
+  
+! 		    fprintf( stderr, "\33[1;1H" );
+! 		    dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
+! 		    fprintf( stderr, "\33[J" );
+! 		    fflush( stdout );
+  
+! 		pthread_mutex_unlock( &(G.mx_print) );
+  	    }
+              continue;
+          }
+--- 6294,6308 ----
+  
+              /* display the list of access points we have */
+  
+! 	    if(!G.do_pause && !G.no_gui) {
+!             pthread_mutex_lock( &(G.mx_print) );
+  
+!                 fprintf( stderr, "\33[1;1H" );
+!                 dump_print( G.ws.ws_row, G.ws.ws_col, G.num_cards );
+!                 fprintf( stderr, "\33[J" );
+!                 fflush( stdout );
+  
+!             pthread_mutex_unlock( &(G.mx_print) );
+  	    }
+              continue;
+          }
+***************
+*** 6302,6310 ****
+                          if (!wi[i]) {
+                              printf("Can't reopen %s\n", ifnam);
+  
+!                             /* Restore terminal */
+!                             fprintf( stderr, "\33[?25h" );
+!                             fflush( stdout );
+  
+                              exit(1);
+                          }
+--- 6338,6348 ----
+                          if (!wi[i]) {
+                              printf("Can't reopen %s\n", ifnam);
+  
+!                             if(!G.no_gui) {
+!                                 /* Restore terminal */
+!                                 fprintf( stderr, "\33[?25h" );
+!                                 fflush( stdout );
+!                             }
+  
+                              exit(1);
+                          }
+***************
+*** 6438,6445 ****
+          }
+      }
+  
+!     fprintf( stderr, "\33[?25h" );
+!     fflush( stdout );
+  
+      return( 0 );
+  }
+--- 6476,6485 ----
+          }
+      }
+  
+!     if(!G.no_gui) {
+!         fprintf( stderr, "\33[?25h" );
+!         fflush( stdout );
+!     }
+  
+      return( 0 );
+  }
+Index: airodump-ng.h
+===================================================================
+*** src/airodump-ng.h	2012-09-28 11:56:05.654256822 +0200
+--- src/airodump-ng_wholmod.h	2012-09-28 11:55:27.740924643 +0200
+***************
+*** 452,457 ****
+--- 452,460 ----
+      
+      uchar selected_bssid[6];	/* bssid that is selected */
+  
++     char no_gui;
++     char no_prefix;
++ 
+      int ignore_negative_one;
+  }
+  G;
