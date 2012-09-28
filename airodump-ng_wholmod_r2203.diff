@@ -3,23 +3,6 @@ Index: airodump-ng.c
 *** src/airodump-ng.c	2012-09-28 11:56:12.470923281 +0200
 --- src/airodump-ng_wholmod.c	2012-09-28 12:18:44.007548803 +0200
 ***************
-*** 65,71 ****
-  #include "uniqueiv.h"
-  #include "crypto.h"
-  #include "osdep/osdep.h"
-! #include "airodump-ng.h"
-  #include "osdep/common.h"
-  #include "common.h"
-  
---- 65,71 ----
-  #include "uniqueiv.h"
-  #include "crypto.h"
-  #include "osdep/osdep.h"
-! #include "airodump-ng_wholmod.h"
-  #include "osdep/common.h"
-  #include "common.h"
-  
-***************
 *** 635,640 ****
 --- 635,645 ----
   "                    2       : Hop on last\n"
