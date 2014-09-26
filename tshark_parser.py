@@ -12,9 +12,9 @@ import re
 
 DATA_TYPES = ['TEXT', 'HEX', 'FILE']
 
-VERSION = '0.1b'
+VERSION = '0.0.1'
 
-PROTOS = { }
+PROTOS = {}
 
 # module content counter
 MCC = 0
@@ -29,45 +29,71 @@ hashTable = {}
 histData = []
 
 HOST_BLACKLIST = (
-        (re.compile('^www-.+.facebook.*$',  re.I | re.U), 'http'),
-        )
+    (re.compile('^www-.+.facebook.*$',  re.I | re.U), 'http'),
+)
+
 
 class DataStorage:
     '''Simple data storage'''
-    def __init__(self, src='', dst='', dtype=0, desc='', proto='', value=None, verified=False, notes='', src_str='', dst_str='', date=''):
-        self.value    = value
+    def __init__(self,
+                 src='',
+                 dst='',
+                 dtype=0,
+                 desc='',
+                 proto='',
+                 value=None,
+                 verified=False,
+                 notes='',
+                 src_str='',
+                 dst_str='',
+                 date=''):
+        self.value = value
         # need to switch src-dst in verifications
         if value.verification:
-            self.src      = dst
-            self.dst      = src
-            self.src_str  = src_str
-            self.dst_str  = dst_str
+            self.src = dst
+            self.dst = src
+            self.src_str = src_str
+            self.dst_str = dst_str
         else:
-            self.src      = src
-            self.dst      = dst
-            self.src_str  = dst_str
-            self.dst_str  = src_str
-        self.desc     = desc
-        self.proto    = proto
-        self.dtype    = dtype
-        self.date     = date
+            self.src = src
+            self.dst = dst
+            self.src_str = dst_str
+            self.dst_str = src_str
+        self.desc = desc
+        self.proto = proto
+        self.dtype = dtype
+        self.date = date
         self.verified = verified
         # verification progress
-        self.vp       = [len(value.value), 0]
-        self.notes    = notes
+        self.vp = [len(value.value), 0]
+        self.notes = notes
         # TODO date
         self.updateHash()
         self.updateId()
 
     def updateHash(self):
-        self.hash = sha1("%s%s%d%s" % (self.src, self.dst, self.dtype, self.proto)).hexdigest()
+        self.hash = sha1("{0}{1}{2}{3}".format(self.src,
+                                               self.dst,
+                                               self.dtype,
+                                               self.proto)).hexdigest()
 
     def updateId(self):
-        self.id = sha1("%s%s%d%s%s" % (self.src, self.dst, self.dtype, self.proto, str(self.value))).hexdigest()
-        # self.id = sha1(''.join([x.__str__() for x in filter(lambda x: not x.startswith('__'), self) if not callable(x)])).hexdigest()
+        self.id = sha1("{0}{1}{2}{3}{4}".format(self.src,
+                                                self.dst,
+                                                self.dtype,
+                                                self.proto,
+                                                str(self.value))).hexdigest()
 
     def __unicode__(self):
-        return "Src: %s, Dst: %s\n %s\n id: %s\n notes: %s\n verified: %s\n" % (self.src_str, self.dst_str, unicode(self.value), self.id, self.notes, str(self.verified))
+        return """Src: {0}, Dst: {1}
+{2}
+notes: {3}
+verified: {4}
+=========================""".format(self.src_str,
+                                    self.dst_str,
+                                    unicode(self.value),
+                                    self.notes,
+                                    str(self.verified))
 
     def verify(self):
         if self.verified:
@@ -79,8 +105,8 @@ class DataStorage:
         if self.value.complete and self.verified:
             return False
         if p.verification and not self.verified:
-            #use self.vp
-            self.verified=True
+            # use self.vp
+            self.verified = True
             self.value.relevance += 10
             if p.notes:
                 try:
@@ -131,37 +157,47 @@ class PacketParser:
 
         # Stop if src or dst location blacklisted
         # for i in HOST_BLACKLIST:
-        #    if (i[0].match(self.dst['host']) or i[0].match(self.src['host'])) and i[1] in self.protos:
+        #    if (i[0].match(self.dst['host']) or i[0].match(self.src['host']))\
+        #        and i[1] in self.protos:
         #        raise Exception('Blacklisted host: %s' % self.dst['host'])
 
     def decode(self):
         c = 0
         for (i, proto) in enumerate(self.dom.childNodes):
             p = proto.attributes['name'].value
-            if not sys.modules.has_key("modules.mod_%s" % p):
+            if "modules.mod_{0}".format(p) not in sys.modules:
                 continue
             try:
                 r = globals()['mod_%s' % p].parse(self.dom.childNodes[i:], self)
             except Exception, e:
-                print '[!] %s module cannot decode packet\n\tError: %s\n' % (p, e)
+                print '[!] %s module cannot decode packet\n\
+                    \tError: %s\n' % (p, e)
                 print 80*'-'
-                #print '\n\n'.join([x.toprettyxml() for x in self.dom.childNodes])
                 continue
 
             for d in r:
-                ds = DataStorage(src=self.src['host'], dst=self.dst['host'], proto=p, value=d, notes='%s -> %s @ %s' % (self.src_str, self.dst['host'], self.time), src_str=self.src['host'], dst_str=self.dst_str, date=self.time)
+                ds = DataStorage(src=self.src['host'],
+                                 dst=self.dst['host'],
+                                 proto=p,
+                                 value=d,
+                                 notes='%s -> %s @ %s' % (self.src_str,
+                                                          self.dst['host'],
+                                                          self.time),
+                                 src_str=self.src['host'],
+                                 dst_str=self.dst_str,
+                                 date=self.time)
                 if d.verification:
-                    #if d.complete:
-                    #    cdc.append(ds)
-                    #    c +=1
-                    #    continue
+                    # if d.complete:
+                    #     cdc.append(ds)
+                    #     c +=1
+                    #     continue
                     for p in reversed(cdc):
                         if p.hash == ds.hash and not p.verified:
                             # TODO check verification
                             cdc.remove(p)
                             p.merge(d)
                             cdc.append(p)
-                            c +=1
+                            c += 1
 
                             break
                     continue
@@ -172,7 +208,7 @@ class PacketParser:
                     histData.append(ds.id)
                     c += 1
                 else:
-                    if hashTable.has_key(ds.hash):
+                    if ds.hash in hashTable:
                         index = hashTable[ds.hash]
                         if ds.value.value.keys() != idc[index].value.keys():
                             if not ds.merge(idc[index]):
@@ -193,7 +229,7 @@ class PacketParser:
         return c
 
 
-def main_loop(relevance_limit, sesskey=''):
+def main_loop(relevance_limit):
     global cdc, MCC
     xml_version = sys.stdin.readline()
     pdml_version = sys.stdin.readline()
@@ -205,17 +241,18 @@ def main_loop(relevance_limit, sesskey=''):
             if line.strip() == '</packet>':
                 try:
                     p = PacketParser(''.join(packet))
-                except Exception, e:
+                except Exception:
                     # print e
                     pass
                 else:
                     packets = p.decode()
                     if packets > 0:
-                        for data in filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:]):
+                        for data in (x for x in cdc[-packets:]
+                                     if x.value.relevance > relevance_limit):
                             MCC += 1
                             # print unicode(data)
                             # this loop filters the sensitive data
-                            for (k,v) in data.value.value.iteritems():
+                            for (k, v) in data.value.value.iteritems():
                                 if k.lower().find('user') < 0:
                                     # cut = len(v)-len(v)%3-2
                                     cut = len(v)-3
@@ -223,26 +260,15 @@ def main_loop(relevance_limit, sesskey=''):
                                         cut = 25
                                     data.value.value[k] = '%s..' % v[:cut]
                             data.value.value = ', '.join(['%s:%s' % (k[0], k[1]) for k in data.value.value.iteritems()])
-                            if sesskey:
-                                try:
-                                    editGridAPI.updateGrid(' x ', data.src_str,
-                                            data.dst_str, data.proto,
-                                            data.value.value, data.date,
-                                            data.value.notes, sesskey)
-                                except:
-                                    pass
                             print unicode(data)
-                        #print ('-'*40+'\n').join(map(unicode, filter(lambda x: x.value.relevance > relevance_limit, cdc[-packets:])))
                 packet = []
 
         line = sys.stdin.readline()
 
 
-
 def destruct(signal, frame):
-    global cdc, idc
     print '\nIncomplete packets:'
-    print '\n'.join(map(unicode, filter(lambda x: x != None, idc)))
+    print '\n'.join(map(unicode, filter(lambda x: x is not None, idc)))
     print '\nComplete Packets:'
     print '\n'.join(map(unicode, cdc))
     sys.exit(0)
@@ -252,14 +278,19 @@ if __name__ == '__main__':
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage, version=("%%prog %s" % VERSION))
     parser.add_option("-f", "--filter", action='store_true', dest='filter')
-    parser.add_option("-s", "--session", action='store', type='string', dest='session')
-    parser.add_option("-r", "--relevance", action='store', type='float',  dest='relevance', default=10)
+    parser.add_option("-r", "--relevance",
+                      action='store',
+                      type='float',
+                      dest='relevance',
+                      default=10)
     (options, args) = parser.parse_args()
     FILTER_EXP = []
     # (short|long) proto description
     # TODO read module dir name from command line parameter
     for f in listdir('modules/'):
-        if f.startswith('mod_') and f.endswith('.py') and isfile('modules/%s' % f):
+        if (f.startswith('mod_')
+                and f.endswith('.py')
+                and isfile('modules/%s' % f)):
             modname = f[:-3]
             try:
                 exec('from modules import %s' % modname)
@@ -279,13 +310,8 @@ if __name__ == '__main__':
         print filter_str,
         sys.exit(0)
     print "[!] Relevance filter: %.2f" % options.relevance
-    if options.session:
-        try:
-            import editGridAPI
-        except:
-            options.session = ''
-    main_loop(options.relevance, sesskey=options.session)
+    main_loop(options.relevance)
     print '\nIncomplete packets:'
-    print '\n'.join(map(unicode, filter(lambda x: x != None, idc)))
+    print '\n'.join(map(unicode, filter(lambda x: x is not None, idc)))
     print '\nComplete Packets:'
     print '\n'.join(map(unicode, cdc))
