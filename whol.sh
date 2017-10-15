@@ -93,7 +93,6 @@ do
 done
 
 redirect_stderr() {
-    # write your test however you want; this just tests if SILENT is non-empty
     if [ "$VERBOSE" -eq 0 ]; then
         "$@" > /dev/null
     else
