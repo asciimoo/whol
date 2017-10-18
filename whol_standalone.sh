@@ -20,6 +20,8 @@ BPID=$!
 
 trap "kill -9 $BPID" INT
 
+reset
+
 TC=1
 R=1
 FILTERPREF=$(./tshark_parser.py -f)
