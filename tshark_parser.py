@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
+import re
 import sys
-from xml.dom.minidom import parseString
-from optparse import OptionParser
+from datetime import datetime
 from hashlib import sha1
+from optparse import OptionParser
 from os import listdir
 from os.path import isfile
 from signal import signal, SIGINT
-import re
+from xml.dom.minidom import parseString
 
 
 DATA_TYPES = ['TEXT', 'HEX', 'FILE']
@@ -85,15 +86,9 @@ class DataStorage:
                                                 str(self.value))).hexdigest()
 
     def __unicode__(self):
-        return """Src: {0}, Dst: {1}
-{2}
-notes: {3}
-verified: {4}
-=========================""".format(self.src_str,
-                                    self.dst_str,
-                                    unicode(self.value),
-                                    self.notes,
-                                    str(self.verified))
+        return """Destination: {0} -- {2}
+{1}
+=========================""".format(self.dst_str, unicode(self.value), datetime.now())
 
     def verify(self):
         if self.verified:
@@ -278,6 +273,7 @@ if __name__ == '__main__':
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage, version=("%%prog %s" % VERSION))
     parser.add_option("-f", "--filter", action='store_true', dest='filter')
+    parser.add_option("-v", "--verbose", action='store_true', dest='verbose')
     parser.add_option("-r", "--relevance",
                       action='store',
                       type='float',
@@ -300,7 +296,7 @@ if __name__ == '__main__':
             else:
                 FILTER_EXP.append('('+globals()[modname].FILTER_EXPRESSION+')')
                 PROTOS.update(globals()[modname].PROTO_NAME)
-                if not options.filter:
+                if not options.filter and options.verbose:
                     print "[!] %s module loaded" % modname[4:]
     if not len(PROTOS):
         print "[!] No modules found. exitting.."
@@ -309,9 +305,11 @@ if __name__ == '__main__':
         filter_str = ' or '.join(FILTER_EXP)
         print filter_str,
         sys.exit(0)
-    print "[!] Relevance filter: %.2f" % options.relevance
+    if options.verbose:
+        print "[!] Relevance filter: %.2f" % options.relevance
     main_loop(options.relevance)
-    print '\nIncomplete packets:'
-    print '\n'.join(map(unicode, filter(lambda x: x is not None, idc)))
-    print '\nComplete Packets:'
-    print '\n'.join(map(unicode, cdc))
+    if options.verbose:
+        print '\nIncomplete packets:'
+        print '\n'.join(map(unicode, filter(lambda x: x is not None, idc)))
+        print '\nComplete Packets:'
+        print '\n'.join(map(unicode, cdc))

@@ -1,5 +1,5 @@
 
-def splitString(s, n): 
+def splitString(s, n):
     return [s[i:i+n] for i in xrange(0, len(s), n)]
 
 def hexStringDecode(s):
@@ -7,20 +7,22 @@ def hexStringDecode(s):
 
 class ModuleStorage:
     "Simple storage class"
-    def __init__(self, value={}, complete=False, notes='', relevance=10, verification=False):
-        self.value         = dict(sorted(value.iteritems()))
-        self.complete      = complete
-        self.notes         = notes
-        self.relevance     = relevance
-        self.verification  = verification
+    def __init__(self, value=None, complete=False, notes='', relevance=10, verification=False):
+        if value is None:
+            self.value = {}
+        else:
+            self.value = value
+        self.complete = complete
+        self.notes = notes
+        self.relevance = relevance
+        self.verification = verification
 
     def __unicode__(self):
-        return u'Value: "%s"\n\tComplete: %s, Notes: %s, Relevance: %f' % (self.value, str(self.complete), self.notes, self.relevance)
+        return u'Value: "%s"\n\t%s' % (self.value, self.notes)
 
     def __str__(self):
         return u'Value: "%s"\n\tRelevance: %f' % (self.value, self.relevance)
 
     def update(self, value):
         self.value.update(value)
-        self.value = dict(sorted(self.value.iteritems()))
 
