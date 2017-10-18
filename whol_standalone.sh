@@ -7,15 +7,15 @@ RELEVANCE=10
 
 rm "$DPREFIX"* > /dev/null 2>&1
 
-mkfifo "$FIFO"
+mkfifo "$FIFO" 2>/dev/null
 
-tcpdump -w "$FIFO" -i "$IFACE" &
+tcpdump -w "$FIFO" -i "$IFACE" 2>/dev/null &
 APID=$!
 
 trap "kill -9 $APID" INT
 
 
-(cat "$FIFO" | tcpdump -r - -C 1 -w $DPREFIX)&
+(cat "$FIFO" | tcpdump -r - -C 1 -w $DPREFIX 2>/dev/null || exit 3)&
 BPID=$!
 
 trap "kill -9 $BPID" INT
@@ -36,5 +36,5 @@ while [ $R == 1 ] ; do
 done | ./tshark_parser.py $RELEVANCE
 
 R=0
-kill -9 $APID
-kill -9 $BPID
+kill -9 $APID 2>/dev/null
+kill -9 $BPID 2>/dev/nulD
